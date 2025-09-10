@@ -5,6 +5,7 @@ Revises:
 Create Date: 2025-09-05 15:21:58
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 import enum
@@ -102,3 +103,4 @@ def downgrade() -> None:
     op.drop_table("accounts")
     op.execute("DROP TYPE IF EXISTS accounttype")
     op.execute("DROP TYPE IF EXISTS partykind")
+
