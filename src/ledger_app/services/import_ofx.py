@@ -5,6 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Iterable, Tuple
 
+from decimal import Decimal, InvalidOperation
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from loguru import logger
@@ -18,9 +19,10 @@ def _parse_datetime(raw: str) -> date:
     return datetime.strptime(ds, "%Y%m%d").date()
 
 def _extract_tag(block: str, tag: str) -> str | None:
-    pattern = re.compile(rf"<{tag}>([\s\S]*?)(?=\r?\n<|$)", re.IGNORECASE)
+    pattern = re.compile(rf"<{tag}>\s*([^<]+)", re.IGNORECASE)
     m = pattern.search(block)
     return m.group(1).strip() if m else None
+
 
 def _iter_stmttrn(ofx_text: str):
     for m in OFX_TXN_BLOCK_RE.finditer(ofx_text):
@@ -31,14 +33,26 @@ def _iter_stmttrn(ofx_text: str):
         name = _extract_tag(block, "NAME") or ""
         memo = _extract_tag(block, "MEMO") or ""
         desc = (name + " " + memo).strip() or name or memo
+
         if not dt or not amt:
             continue
+
+        # NEW: safer Decimal parsing
+        raw_amt = amt.replace(",", "").strip()
+        try:
+            amount = Decimal(raw_amt)
+        except InvalidOperation:
+            # Skip malformed amounts rather than crashing
+            logger.warning(f"Skip malformed TRNAMT: {raw_amt!r}")
+            continue
+
         yield {
-            "posted_date": _parse_datetime(dt),
-            "amount": Decimal(amt.replace(",", "")),
+            "posted_date": _parse_ofx_date(dt),
+            "amount": amount,
             "fitid": (fitid or "").strip() or None,
             "description": desc[:255],
         }
+
 
 def _get_or_create_statement(
     db: Session,
