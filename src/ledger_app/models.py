@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, ForeignKey, Date, Numeric, Enum, CheckConstraint, UniqueConstraint
+from sqlalchemy import String, Integer, ForeignKey, Date, Numeric, Enum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 import enum
@@ -78,3 +78,24 @@ class StatementLine(Base):
     description: Mapped[str] = mapped_column(String)
     fitid: Mapped[str | None] = mapped_column(String)
     matched_split_id: Mapped[int | None] = mapped_column(ForeignKey("splits.id"))
+
+class CheckStatus(str, enum.Enum):
+    ISSUED="ISSUED"; VOID="VOID"; CLEARED="CLEARED"
+
+class Check(Base):
+    __tablename__ = "checks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    check_no: Mapped[str] = mapped_column(String, unique=True)
+    date: Mapped[Date]
+    payee_id: Mapped[int | None] = mapped_column(ForeignKey("parties.id"))
+    amount: Mapped[Numeric] = mapped_column(Numeric(18,2))
+    memo: Mapped[str | None] = mapped_column(String)
+    transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id"))
+    status: Mapped[CheckStatus] = mapped_column(Enum(CheckStatus), default=CheckStatus.ISSUED)
+
+class TransactionReversal(Base):
+    """Link table connecting an original transaction to its reversing entry."""
+    __tablename__ = "transaction_reversals"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    original_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), unique=True)
+    reversing_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), unique=True)
