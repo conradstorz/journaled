@@ -1,3 +1,4 @@
+
 import os
 import sys
 from logging.config import fileConfig
@@ -57,7 +58,6 @@ def run_migrations_online():
             compare_type=True,
             compare_server_default=True,
         )
-
         with context.begin_transaction():
             context.run_migrations()
 
@@ -65,3 +65,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+
