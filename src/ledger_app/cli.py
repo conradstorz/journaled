@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 import sys
 import os
@@ -35,6 +36,14 @@ def cmd_downgrade(args) -> int:
     logger.success("Downgrade complete.")
     return 0
 
+def cmd_seed_coa(args) -> int:
+    db = SessionLocal()
+    try:
+        seed_chart_of_accounts(db)
+    finally:
+        db.close()
+    return 0
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ledger-dev", description="Ledger dev utilities")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -49,6 +58,9 @@ def main(argv: list[str] | None = None) -> int:
     p3 = sub.add_parser("downgrade", help="Downgrade Alembic by N steps")
     p3.add_argument("-n", "--steps", help="Steps to downgrade (default 1)")
     p3.set_defaults(func=cmd_downgrade)
+
+    p4 = sub.add_parser("seed-coa", help="Insert minimal chart of accounts")
+    p4.set_defaults(func=cmd_seed_coa)
 
     args = parser.parse_args(argv or sys.argv[1:])
     return args.func(args)
