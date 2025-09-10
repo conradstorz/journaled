@@ -1,4 +1,4 @@
-"""add parent_id to accounts
+"""add parent_id to accounts (SQLite-safe)
 
 Revision ID: 20250910_0004
 Revises: 20250910_0003
@@ -6,6 +6,7 @@ Create Date: 2025-09-10
 """
 from alembic import op
 import sqlalchemy as sa
+from alembic import context
 
 # revision identifiers, used by Alembic.
 revision = "20250910_0004"
@@ -15,21 +16,32 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Use batch mode for SQLite compatibility (adds FK/index safely)
-    with op.batch_alter_table("accounts") as batch_op:
-        batch_op.add_column(sa.Column("parent_id", sa.Integer(), nullable=True))
-        batch_op.create_index("ix_accounts_parent_id", ["parent_id"])
-        batch_op.create_foreign_key(
+    # 1) Add the column plainly (no batch; avoids SQLite table-recreate ordering issues)
+    op.add_column("accounts", sa.Column("parent_id", sa.Integer(), nullable=True))
+
+    # 2) Index is fine on SQLite
+    op.create_index("ix_accounts_parent_id", "accounts", ["parent_id"])
+
+    # 3) Only add FK on engines that can ALTER TABLE ADD CONSTRAINT sanely
+    bind = context.get_bind()
+    dialect = bind.dialect.name if bind is not None else ""
+    if dialect not in ("sqlite",):
+        op.create_foreign_key(
             "fk_accounts_parent_id_accounts",
             "accounts",
-            ["parent_id"],
-            ["id"],
+            "accounts",
+            local_cols=["parent_id"],
+            remote_cols=["id"],
             ondelete="SET NULL",
         )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("accounts") as batch_op:
-        batch_op.drop_constraint("fk_accounts_parent_id_accounts", type_="foreignkey")
-        batch_op.drop_index("ix_accounts_parent_id")
-        batch_op.drop_column("parent_id")
+    # Drop FK if it exists (no-op on SQLite)
+    bind = context.get_bind()
+    dialect = bind.dialect.name if bind is not None else ""
+    if dialect not in ("sqlite",):
+        op.drop_constraint("fk_accounts_parent_id_accounts", "accounts", type_="foreignkey")
+
+    op.drop_index("ix_accounts_parent_id", table_name="accounts")
+    op.drop_column("accounts", "parent_id")
