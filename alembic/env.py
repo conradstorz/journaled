@@ -1,34 +1,32 @@
+# alembic/env.py
+from __future__ import annotations
 
 import os
-import sys
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
+
 from alembic import context
+from sqlalchemy import create_engine, pool
 
-# Ensure src/ is on path so we can import ledger_app.*
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SRC = os.path.abspath(os.path.join(ROOT, "src"))
-if SRC not in sys.path:
-    sys.path.append(SRC)
+# Import your metadata
+from ledger_app.models import Base
 
-from ledger_app.db import Base
-from ledger_app import models  # noqa: F401 - ensures models are imported for metadata
-
-# this is the Alembic Config object, which provides access to the values within the .ini file in use.
+# Alembic Config object
 config = context.config
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set target metadata for 'autogenerate' support.
+# Target metadata for 'autogenerate' support.
 target_metadata = Base.metadata
 
-# Database URL from env (fallback to SQLite dev.db)
-def get_url():
-    return os.getenv("DATABASE_URL", "sqlite:///./dev.db")
 
-def run_migrations_offline():
+def get_url() -> str:
+    # Prefer env var for tests/CI; fallback to alembic.ini
+    return os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+
+
+def run_migrations_offline() -> None:
     url = get_url()
     context.configure(
         url=url,
@@ -38,18 +36,14 @@ def run_migrations_offline():
         compare_type=True,
         compare_server_default=True,
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
-def run_migrations_online():
-    configuration = config.get_section(config.config_ini_section) or {}
-    connectable = engine_from_config(
-        configuration,
-        prefix="",
-        url=get_url(),
-        poolclass=pool.NullPool,
-        future=True,
-    )
+
+def run_migrations_online() -> None:
+    url = get_url()
+    connectable = create_engine(url, poolclass=pool.NullPool, future=True)
 
     with connectable.connect() as connection:
         context.configure(
@@ -61,8 +55,8 @@ def run_migrations_online():
         with context.begin_transaction():
             context.run_migrations()
 
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
