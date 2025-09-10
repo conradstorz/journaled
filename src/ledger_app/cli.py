@@ -4,6 +4,7 @@ import sys
 import os
 from datetime import date as _date
 import argparse
+from decimal import Decimal
 from loguru import logger
 from alembic import command
 from alembic.config import Config
@@ -14,6 +15,8 @@ from ledger_app.db import SessionLocal
 from ledger_app.seeds import seed_chart_of_accounts
 from ledger_app.services.reversal import create_reversing_entry
 from ledger_app.services.checks import void_check
+from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+from ledger_app.services.import_csv import import_statement_csv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'ledger/'
 ALEMBIC_INI = PROJECT_ROOT / "alembic.ini"
@@ -70,6 +73,88 @@ def cmd_void_check(args) -> int:
         db.close()
     return 0
 
+# --- Reconcile commands ---
+def cmd_reconcile_propose(args) -> int:
+    db = SessionLocal()
+    try:
+        params = ReconcileParams(
+            account_id=args.account_id,
+            period_start=_date.fromisoformat(args.period_start),
+            period_end=_date.fromisoformat(args.period_end),
+            amount_tolerance=Decimal(args.amount_tolerance),
+            date_window_days=int(args.date_window),
+        )
+        proposals = propose_matches(db, params)
+        for p in proposals:
+            print(f"line={p.line_id} -> split={p.split_id} score={p.score} reason={p.reason}")
+    finally:
+        db.close()
+    return 0
+
+def cmd_reconcile_apply(args) -> int:
+    db = SessionLocal()
+    try:
+        apply_match(db, args.line_id, args.split_id)
+        print("ok")
+    finally:
+        db.close()
+    return 0
+
+def cmd_reconcile_unmatch(args) -> int:
+    db = SessionLocal()
+    try:
+        unmatch(db, args.line_id)
+        print("ok")
+    finally:
+        db.close()
+    return 0
+
+def cmd_reconcile_status(args) -> int:
+    db = SessionLocal()
+    try:
+        params = ReconcileParams(
+            account_id=args.account_id,
+            period_start=_date.fromisoformat(args.period_start),
+            period_end=_date.fromisoformat(args.period_end),
+            amount_tolerance=Decimal(args.amount_tolerance),
+            date_window_days=int(args.date_window),
+        )
+        s = status(db, params)
+        print(f"opening={s.opening_bal} closing={s.closing_bal} stmt_delta={s.stmt_delta} "
+              f"book_delta={s.book_delta} diff={s.difference} "
+              f"matched_lines={s.matched_lines} unmatched_lines={s.unmatched_lines}")
+    finally:
+        db.close()
+    return 0
+
+# --- CSV import command ---
+def cmd_import_csv(args) -> int:
+    db = SessionLocal()
+    try:
+        period_start = _date.fromisoformat(args.period_start)
+        period_end = _date.fromisoformat(args.period_end)
+        opening = Decimal(args.opening)
+        closing = Decimal(args.closing)
+        created_stmt_id, line_count = import_statement_csv(
+            db=db,
+            account_id=args.account_id,
+            period_start=period_start,
+            period_end=period_end,
+            opening_bal=opening,
+            closing_bal=closing,
+            csv_path=args.csv,
+            date_format=args.date_format,
+            has_header=(not args.no_header),
+            date_col=args.date_col,
+            amount_col=args.amount_col,
+            desc_col=args.desc_col,
+            fitid_col=args.fitid_col,
+        )
+        logger.success(f"Imported {line_count} lines into statement id={created_stmt_id}")
+    finally:
+        db.close()
+    return 0
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ledger-dev", description="Ledger dev utilities")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -101,11 +186,52 @@ def main(argv: list[str] | None = None) -> int:
     p6.add_argument("--no-reversal", action="store_true", help="Do not create a reversing transaction")
     p6.set_defaults(func=cmd_void_check)
 
+    # Reconcile
+    p7 = sub.add_parser("reconcile-propose", help="Propose matches for a statement period")
+    p7.add_argument("--account-id", type=int, required=True)
+    p7.add_argument("--period-start", required=True)
+    p7.add_argument("--period-end", required=True)
+    p7.add_argument("--amount-tolerance", default="0.01")
+    p7.add_argument("--date-window", default="3")
+    p7.set_defaults(func=cmd_reconcile_propose)
+
+    p8 = sub.add_parser("reconcile-apply", help="Apply a match: line -> split")
+    p8.add_argument("--line-id", type=int, required=True)
+    p8.add_argument("--split-id", type=int, required=True)
+    p8.set_defaults(func=cmd_reconcile_apply)
+
+    p9 = sub.add_parser("reconcile-unmatch", help="Unmatch a statement line")
+    p9.add_argument("--line-id", type=int, required=True)
+    p9.set_defaults(func=cmd_reconcile_unmatch)
+
+    p10 = sub.add_parser("reconcile-status", help="Show reconciliation status for a statement")
+    p10.add_argument("--account-id", type=int, required=True)
+    p10.add_argument("--period-start", required=True)
+    p10.add_argument("--period-end", required=True)
+    p10.add_argument("--amount-tolerance", default="0.01")
+    p10.add_argument("--date-window", default="3")
+    p10.set_defaults(func=cmd_reconcile_status)
+
+    # Import CSV
+    p11 = sub.add_parser("import-csv", help="Import a bank CSV into statement_lines (creates/finds Statement)")
+    p11.add_argument("--account-id", type=int, required=True)
+    p11.add_argument("--period-start", required=True, help="YYYY-MM-DD")
+    p11.add_argument("--period-end", required=True, help="YYYY-MM-DD")
+    p11.add_argument("--opening", required=True, help="Opening balance for the statement")
+    p11.add_argument("--closing", required=True, help="Closing balance for the statement")
+    p11.add_argument("--csv", required=True, help="Path to CSV file")
+    p11.add_argument("--no-header", action="store_true", help="CSV has no header row")
+    p11.add_argument("--date-format", default="%Y-%m-%d", help="Python strptime format for dates")
+    p11.add_argument("--date-col", default="date")
+    p11.add_argument("--amount-col", default="amount")
+    p11.add_argument("--desc-col", default="description")
+    p11.add_argument("--fitid-col", default="fitid")
+    p11.set_defaults(func=cmd_import_csv)
+
     args = parser.parse_args(argv or sys.argv[1:])
     return args.func(args)
 
 if __name__ == "__main__":
     raise SystemExit(main())
-(argv or sys.argv[1:])
-    return args.func(args)
+
 
