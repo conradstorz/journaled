@@ -1,3 +1,4 @@
+
 # Ledger (Lean Double-Entry Bookkeeping)
 
 A lightweight, auditable QuickBooks replacement focused on proper double-entry accounting, clean imports, reconciliation, check printing, and core financial statements.
