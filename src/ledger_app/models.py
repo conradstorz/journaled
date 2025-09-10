@@ -1,101 +1,123 @@
-from sqlalchemy import String, Integer, ForeignKey, Date, Numeric, Enum, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .db import Base
-import enum
+# src/ledger_app/models.py
+from __future__ import annotations
+from datetime import date
+from decimal import Decimal
+from enum import Enum
+from typing import List, Optional
 
-class AccountType(str, enum.Enum):
-    ASSET="ASSET"; LIABILITY="LIABILITY"; EQUITY="EQUITY"; INCOME="INCOME"; EXPENSE="EXPENSE"
+from sqlalchemy import (
+    Date, Enum as SAEnum, ForeignKey, Integer, Numeric, String, UniqueConstraint, CheckConstraint
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class AccountType(str, Enum):
+    ASSET = "ASSET"
+    LIABILITY = "LIABILITY"
+    EQUITY = "EQUITY"
+    INCOME = "INCOME"
+    EXPENSE = "EXPENSE"
+
 
 class Account(Base):
     __tablename__ = "accounts"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True)
-    code: Mapped[str | None] = mapped_column(String, nullable=True)
-    type: Mapped[AccountType] = mapped_column(Enum(AccountType))
-    parent_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id"))
-    currency: Mapped[str] = mapped_column(String, default="USD")
-    active: Mapped[bool] = mapped_column(default=True)
-    parent = relationship("Account", remote_side=[id])
 
-class PartyKind(str, enum.Enum):
-    PAYEE="PAYEE"; VENDOR="VENDOR"; CUSTOMER="CUSTOMER"; MIXED="MIXED"
-
-class Party(Base):
-    __tablename__ = "parties"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True)
-    kind: Mapped[PartyKind] = mapped_column(Enum(PartyKind), default=PartyKind.MIXED)
-    email: Mapped[str | None] = mapped_column(String)
-    phone: Mapped[str | None] = mapped_column(String)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    code: Mapped[Optional[str]] = mapped_column(String(30))
+    type: Mapped[AccountType] = mapped_column(SAEnum(AccountType), nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
-class Address(Base):
-    __tablename__ = "addresses"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    party_id: Mapped[int] = mapped_column(ForeignKey("parties.id"))
-    line1: Mapped[str] = mapped_column(String)
-    line2: Mapped[str | None] = mapped_column(String)
-    city: Mapped[str] = mapped_column(String)
-    state: Mapped[str] = mapped_column(String)
-    postal: Mapped[str] = mapped_column(String)
-    country: Mapped[str] = mapped_column(String, default="US")
-    is_default: Mapped[bool] = mapped_column(default=True)
+    splits: Mapped[List["Split"]] = relationship(back_populates="account")
+
 
 class Transaction(Base):
     __tablename__ = "transactions"
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    date: Mapped[Date] = mapped_column(Date)
-    description: Mapped[str] = mapped_column(String)
-    reference: Mapped[str | None] = mapped_column(String)
-    party_id: Mapped[int | None] = mapped_column(ForeignKey("parties.id"))
+    date: Mapped[date] = mapped_column(Date, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+
+    splits: Mapped[List["Split"]] = relationship(back_populates="transaction", cascade="all, delete-orphan")
+
 
 class Split(Base):
     __tablename__ = "splits"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"))
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
-    amount: Mapped[Numeric] = mapped_column(Numeric(18, 2))
-    memo: Mapped[str | None] = mapped_column(String)
 
-    __table_args__ = (
-        UniqueConstraint("transaction_id", "account_id", "amount", "memo", name="uq_split_dedupe"),
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False, index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    memo: Mapped[Optional[str]] = mapped_column(String(255))
+
+    transaction: Mapped["Transaction"] = relationship(back_populates="splits")
+    account: Mapped["Account"] = relationship(back_populates="splits")
+
 
 class Statement(Base):
     __tablename__ = "statements"
+    __table_args__ = (
+        UniqueConstraint("account_id", "period_start", "period_end", name="uq_statement_period"),
+    )
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
-    period_start: Mapped[Date]
-    period_end: Mapped[Date]
-    opening_bal: Mapped[Numeric] = mapped_column(Numeric(18,2))
-    closing_bal: Mapped[Numeric] = mapped_column(Numeric(18,2))
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    opening_bal: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    closing_bal: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+
+    lines: Mapped[List["StatementLine"]] = relationship(back_populates="statement", cascade="all, delete-orphan")
+
 
 class StatementLine(Base):
     __tablename__ = "statement_lines"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    statement_id: Mapped[int] = mapped_column(ForeignKey("statements.id", ondelete="CASCADE"))
-    posted_date: Mapped[Date]
-    amount: Mapped[Numeric] = mapped_column(Numeric(18,2))
-    description: Mapped[str] = mapped_column(String)
-    fitid: Mapped[str | None] = mapped_column(String)
-    matched_split_id: Mapped[int | None] = mapped_column(ForeignKey("splits.id"))
+    __table_args__ = (
+        # optional; FITID uniqueness per statement helps dedupe
+        UniqueConstraint("statement_id", "fitid", name="uq_stmtline_fitid"),
+    )
 
-class CheckStatus(str, enum.Enum):
-    ISSUED="ISSUED"; VOID="VOID"; CLEARED="CLEARED"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    statement_id: Mapped[int] = mapped_column(ForeignKey("statements.id", ondelete="CASCADE"), nullable=False, index=True)
+    posted_date: Mapped[date] = mapped_column(Date, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+    fitid: Mapped[Optional[str]] = mapped_column(String(64))
+    matched_split_id: Mapped[Optional[int]] = mapped_column(ForeignKey("splits.id", ondelete="SET NULL"), index=True)
+
+    statement: Mapped["Statement"] = relationship(back_populates="lines")
+    matched_split: Mapped[Optional["Split"]] = relationship(foreign_keys=[matched_split_id])
+
+
+class TransactionReversal(Base):
+    __tablename__ = "transaction_reversals"
+    __table_args__ = (
+        UniqueConstraint("original_tx_id", name="uq_reversal_original"),
+        UniqueConstraint("reversing_tx_id", name="uq_reversal_reversing"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    original_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
+    reversing_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
+
+
+class CheckStatus(str, Enum):
+    ISSUED = "issued"
+    VOID = "void"
+    CLEARED = "cleared"
+
 
 class Check(Base):
     __tablename__ = "checks"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    check_no: Mapped[str] = mapped_column(String, unique=True)
-    date: Mapped[Date]
-    payee_id: Mapped[int | None] = mapped_column(ForeignKey("parties.id"))
-    amount: Mapped[Numeric] = mapped_column(Numeric(18,2))
-    memo: Mapped[str | None] = mapped_column(String)
-    transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id"))
-    status: Mapped[CheckStatus] = mapped_column(Enum(CheckStatus), default=CheckStatus.ISSUED)
 
-class TransactionReversal(Base):
-    """Link table connecting an original transaction to its reversing entry."""
-    __tablename__ = "transaction_reversals"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    original_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), unique=True)
-    reversing_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), unique=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
+    check_number: Mapped[Optional[str]] = mapped_column(String(30), index=True)
+    payee: Mapped[Optional[str]] = mapped_column(String(120))
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    issue_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[CheckStatus] = mapped_column(SAEnum(CheckStatus), default=CheckStatus.ISSUED, nullable=False)
