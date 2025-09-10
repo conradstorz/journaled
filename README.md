@@ -43,7 +43,7 @@ uv run pytest -q
 ```
 
 ### Run a scratch DB locally (SQLite dev)
-The default `DATABASE_URL` is `sqlite:///./dev.db`. You can override it with PostgreSQL when ready:
+Default `DATABASE_URL` is `sqlite:///./dev.db`. Override for Postgres if desired:
 ```bash
 # Example for Postgres (adjust creds/host/db as needed)
 export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/ledger"
@@ -66,6 +66,13 @@ uv run python -q
 >>> post_transaction(db, tx, [s1, s2])
 >>> db.commit()
 >>> db.close()
+```
+## CI
+This repo includes a GitHub Actions workflow that installs **uv**, caches dependencies, and runs the pytest suite on push/PR.
+
+Badge (add once pushed to GitHub):
+```
+[![CI](https://github.com/<you>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<you>/<repo>/actions/workflows/ci.yml)
 ```
 
 ## Logging
