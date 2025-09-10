@@ -14,34 +14,49 @@ down_revision = "20250910_0003"
 branch_labels = None
 depends_on = None
 
-
 def upgrade() -> None:
-    # 1) Add the column plainly (no batch; avoids SQLite table-recreate ordering issues)
-    op.add_column("accounts", sa.Column("parent_id", sa.Integer(), nullable=True))
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
 
-    # 2) Index is fine on SQLite
-    op.create_index("ix_accounts_parent_id", "accounts", ["parent_id"])
+    # 1) Add column if missing
+    cols = {c["name"] for c in insp.get_columns("accounts")}
+    if "parent_id" not in cols:
+        op.add_column("accounts", sa.Column("parent_id", sa.Integer(), nullable=True))
 
-    # 3) Only add FK on engines that can ALTER TABLE ADD CONSTRAINT sanely
-    bind = context.get_bind()
-    dialect = bind.dialect.name if bind is not None else ""
-    if dialect not in ("sqlite",):
-        op.create_foreign_key(
-            "fk_accounts_parent_id_accounts",
-            "accounts",
-            "accounts",
-            local_cols=["parent_id"],
-            remote_cols=["id"],
-            ondelete="SET NULL",
-        )
+    # 2) Add index if missing
+    idx_names = {ix["name"] for ix in insp.get_indexes("accounts")}
+    if "ix_accounts_parent_id" not in idx_names:
+        op.create_index("ix_accounts_parent_id", "accounts", ["parent_id"])
+
+    # 3) Add FK on non-SQLite engines only (and only if not present)
+    dialect = bind.dialect.name
+    if dialect != "sqlite":
+        fks = {fk["name"] for fk in insp.get_foreign_keys("accounts") if fk.get("name")}
+        if "fk_accounts_parent_id_accounts" not in fks:
+            op.create_foreign_key(
+                "fk_accounts_parent_id_accounts",
+                "accounts",
+                "accounts",
+                local_cols=["parent_id"],
+                remote_cols=["id"],
+                ondelete="SET NULL",
+            )
 
 
 def downgrade() -> None:
-    # Drop FK if it exists (no-op on SQLite)
-    bind = context.get_bind()
-    dialect = bind.dialect.name if bind is not None else ""
-    if dialect not in ("sqlite",):
-        op.drop_constraint("fk_accounts_parent_id_accounts", "accounts", type_="foreignkey")
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
 
-    op.drop_index("ix_accounts_parent_id", table_name="accounts")
-    op.drop_column("accounts", "parent_id")
+    dialect = bind.dialect.name
+    if dialect != "sqlite":
+        fks = {fk["name"] for fk in insp.get_foreign_keys("accounts") if fk.get("name")}
+        if "fk_accounts_parent_id_accounts" in fks:
+            op.drop_constraint("fk_accounts_parent_id_accounts", "accounts", type_="foreignkey")
+
+    idx_names = {ix["name"] for ix in insp.get_indexes("accounts")}
+    if "ix_accounts_parent_id" in idx_names:
+        op.drop_index("ix_accounts_parent_id", table_name="accounts")
+
+    cols = {c["name"] for c in insp.get_columns("accounts")}
+    if "parent_id" in cols:
+        op.drop_column("accounts", "parent_id")
