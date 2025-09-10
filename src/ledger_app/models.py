@@ -121,3 +121,25 @@ class Check(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     issue_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[CheckStatus] = mapped_column(SAEnum(CheckStatus), default=CheckStatus.ISSUED, nullable=False)
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    code: Mapped[Optional[str]] = mapped_column(String(30))
+    type: Mapped[AccountType] = mapped_column(SAEnum(AccountType), nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+    # NEW: hierarchical COA support
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    parent: Mapped[Optional["Account"]] = relationship(
+        "Account", remote_side="Account.id", back_populates="children"
+    )
+    children: Mapped[List["Account"]] = relationship(
+        "Account", back_populates="parent", cascade="all"
+    )
+
+    splits: Mapped[List["Split"]] = relationship(back_populates="account")
