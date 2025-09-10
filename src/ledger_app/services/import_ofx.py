@@ -12,17 +12,37 @@ from loguru import logger
 
 from ..models import Statement, StatementLine
 
+def _parse_ofx_date(raw: str) -> date:
+    # OFX dates are like 20250107120000[-5:EST]; we only need YYYYMMDD
+    return datetime.strptime(raw.strip()[:8], "%Y%m%d").date()
+
 OFX_TXN_BLOCK_RE = re.compile(r"<STMTTRN>(.*?)</STMTTRN>", re.DOTALL | re.IGNORECASE)
+LEDGERBAL_BLOCK_RE = re.compile(r"<LEDGERBAL>(.*?)</LEDGERBAL>", re.DOTALL | re.IGNORECASE)
+
+def _extract_tag(text: str, tag: str) -> str | None:
+    m = re.search(rf"<{tag}>\s*([^<]+)", text, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+def _closing_from_ofx(text: str) -> Decimal | None:
+    m = LEDGERBAL_BLOCK_RE.search(text)
+    if m:
+        balamt = _extract_tag(m.group(1), "BALAMT")
+        if balamt:
+            try:
+                return Decimal(balamt.replace(",", ""))
+            except Exception:
+                pass
+    bal_fallback = _extract_tag(text, "BALAMT")
+    if bal_fallback:
+        try:
+            return Decimal(bal_fallback.replace(",", ""))
+        except Exception:
+            return None
+    return None
 
 def _parse_datetime(raw: str) -> date:
     ds = raw.strip()[:8]
     return datetime.strptime(ds, "%Y%m%d").date()
-
-def _extract_tag(block: str, tag: str) -> str | None:
-    pattern = re.compile(rf"<{tag}>\s*([^<]+)", re.IGNORECASE)
-    m = pattern.search(block)
-    return m.group(1).strip() if m else None
-
 
 def _iter_stmttrn(ofx_text: str):
     for m in OFX_TXN_BLOCK_RE.finditer(ofx_text):
