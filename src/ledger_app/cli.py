@@ -17,6 +17,7 @@ from ledger_app.services.reversal import create_reversing_entry
 from ledger_app.services.checks import void_check
 from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
 from ledger_app.services.import_csv import import_statement_csv
+from ledger_app.services.import_ofx import import_ofx
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'ledger/'
 ALEMBIC_INI = PROJECT_ROOT / "alembic.ini"
@@ -155,6 +156,27 @@ def cmd_import_csv(args) -> int:
         db.close()
     return 0
 
+def cmd_import_ofx(args) -> int:
+    db = SessionLocal()
+    try:
+        period_start = _date.fromisoformat(args.period_start)
+        period_end = _date.fromisoformat(args.period_end)
+        opening = Decimal(args.opening)
+        closing = Decimal(args.closing)
+        stmt_id, count = import_ofx(
+            db=db,
+            account_id=args.account_id,
+            period_start=period_start,
+            period_end=period_end,
+            opening_bal=opening,
+            closing_bal=closing,
+            ofx_path=args.ofx,
+        )
+        logger.success(f"Imported {count} lines into statement id={stmt_id}")
+    finally:
+        db.close()
+    return 0
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ledger-dev", description="Ledger dev utilities")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -228,10 +250,21 @@ def main(argv: list[str] | None = None) -> int:
     p11.add_argument("--fitid-col", default="fitid")
     p11.set_defaults(func=cmd_import_csv)
 
+    # Import OFX/QFX
+    p12 = sub.add_parser("import-ofx", help="Import an OFX/QFX file into statement_lines")
+    p12.add_argument("--account-id", type=int, required=True)
+    p12.add_argument("--period-start", required=True, help="YYYY-MM-DD")
+    p12.add_argument("--period-end", required=True, help="YYYY-MM-DD")
+    p12.add_argument("--opening", required=True, help="Opening balance for the statement")
+    p12.add_argument("--closing", required=True, help="Closing balance for the statement")
+    p12.add_argument("--ofx", required=True, help="Path to OFX/QFX file")
+    p12.set_defaults(func=cmd_import_ofx)
+
     args = parser.parse_args(argv or sys.argv[1:])
     return args.func(args)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
