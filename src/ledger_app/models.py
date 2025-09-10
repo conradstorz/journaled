@@ -6,7 +6,7 @@ from enum import Enum
 from typing import List, Optional
 
 from sqlalchemy import (
-    Date, Enum as SAEnum, ForeignKey, Integer, Numeric, String, UniqueConstraint, CheckConstraint
+    Date, Enum as SAEnum, ForeignKey, Integer, Numeric, String, UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -24,6 +24,7 @@ class AccountType(str, Enum):
 
 
 class Account(Base):
+    """Chart-of-accounts entry (supports parent/child hierarchy)."""
     __tablename__ = "accounts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -31,6 +32,17 @@ class Account(Base):
     code: Mapped[Optional[str]] = mapped_column(String(30))
     type: Mapped[AccountType] = mapped_column(SAEnum(AccountType), nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    # Hierarchical COA
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    parent: Mapped[Optional["Account"]] = relationship(
+        "Account", remote_side="Account.id", back_populates="children"
+    )
+    children: Mapped[List["Account"]] = relationship(
+        "Account", back_populates="parent", cascade="all"
+    )
 
     splits: Mapped[List["Split"]] = relationship(back_populates="account")
 
@@ -42,15 +54,21 @@ class Transaction(Base):
     date: Mapped[date] = mapped_column(Date, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
-    splits: Mapped[List["Split"]] = relationship(back_populates="transaction", cascade="all, delete-orphan")
+    splits: Mapped[List["Split"]] = relationship(
+        back_populates="transaction", cascade="all, delete-orphan"
+    )
 
 
 class Split(Base):
     __tablename__ = "splits"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False, index=True)
+    transaction_id: Mapped[int] = mapped_column(
+        ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     memo: Mapped[Optional[str]] = mapped_column(String(255))
 
@@ -65,29 +83,36 @@ class Statement(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     period_start: Mapped[date] = mapped_column(Date, nullable=False)
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
     opening_bal: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     closing_bal: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
 
-    lines: Mapped[List["StatementLine"]] = relationship(back_populates="statement", cascade="all, delete-orphan")
+    lines: Mapped[List["StatementLine"]] = relationship(
+        back_populates="statement", cascade="all, delete-orphan"
+    )
 
 
 class StatementLine(Base):
     __tablename__ = "statement_lines"
     __table_args__ = (
-        # optional; FITID uniqueness per statement helps dedupe
         UniqueConstraint("statement_id", "fitid", name="uq_stmtline_fitid"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    statement_id: Mapped[int] = mapped_column(ForeignKey("statements.id", ondelete="CASCADE"), nullable=False, index=True)
+    statement_id: Mapped[int] = mapped_column(
+        ForeignKey("statements.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     posted_date: Mapped[date] = mapped_column(Date, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
     fitid: Mapped[Optional[str]] = mapped_column(String(64))
-    matched_split_id: Mapped[Optional[int]] = mapped_column(ForeignKey("splits.id", ondelete="SET NULL"), index=True)
+    matched_split_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("splits.id", ondelete="SET NULL"), index=True
+    )
 
     statement: Mapped["Statement"] = relationship(back_populates="lines")
     matched_split: Mapped[Optional["Split"]] = relationship(foreign_keys=[matched_split_id])
@@ -120,26 +145,6 @@ class Check(Base):
     payee: Mapped[Optional[str]] = mapped_column(String(120))
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     issue_date: Mapped[date] = mapped_column(Date, nullable=False)
-    status: Mapped[CheckStatus] = mapped_column(SAEnum(CheckStatus), default=CheckStatus.ISSUED, nullable=False)
-
-class Account(Base):
-    __tablename__ = "accounts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    code: Mapped[Optional[str]] = mapped_column(String(30))
-    type: Mapped[AccountType] = mapped_column(SAEnum(AccountType), nullable=False)
-    is_active: Mapped[bool] = mapped_column(default=True)
-
-    # NEW: hierarchical COA support
-    parent_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    status: Mapped[CheckStatus] = mapped_column(
+        SAEnum(CheckStatus), default=CheckStatus.ISSUED, nullable=False
     )
-    parent: Mapped[Optional["Account"]] = relationship(
-        "Account", remote_side="Account.id", back_populates="children"
-    )
-    children: Mapped[List["Account"]] = relationship(
-        "Account", back_populates="parent", cascade="all"
-    )
-
-    splits: Mapped[List["Split"]] = relationship(back_populates="account")
