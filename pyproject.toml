@@ -1,0 +1,20 @@
+[project]
+name = "ledger"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "sqlalchemy>=2.0",
+  "psycopg[binary]",
+  "pydantic>=2",
+  "alembic",
+  "python-dateutil",
+  "reportlab",
+  "weasyprint",
+  "loguru",
+  "jinja2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
