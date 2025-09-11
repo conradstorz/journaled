@@ -256,30 +256,57 @@ def import_ofx(
         closing_bal=closing_bal,
     )
 
-    # Insert lines with dedupe strategy:
-    # - If FITID present → dedupe against DB by FITID
-    # - If FITID missing → dedupe only within this import batch
+    # Insert lines with dedupe:
+    # - In-batch dedupe:
+    #     * if FITID present  -> by FITID
+    #     * if FITID missing  -> by (date, amount, desc)
+    # - DB dedupe:
+    #     * try FITID when present
+    #     * also try (date, amount, desc) (idempotent file re-import)
     inserted = 0
+    seen_fitids: set[str] = set()
     seen_no_fitid: set[tuple[date, Decimal, str]] = set()
 
     for trn in txns:
         if not (period_start <= trn["posted_date"] <= period_end):
             continue
 
-        if trn["fitid"]:
+        fitid = trn["fitid"]
+        triple = (trn["posted_date"], trn["amount"], trn["description"])
+
+        # --- In-batch dedupe ---
+        if fitid:
+            if fitid in seen_fitids:
+                continue
+            seen_fitids.add(fitid)
+        else:
+            if triple in seen_no_fitid:
+                continue
+            seen_no_fitid.add(triple)
+
+        # --- DB dedupe ---
+        dup = None
+        if fitid:
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
-                    StatementLine.fitid == trn["fitid"],
+                    StatementLine.fitid == fitid,
                 )
             ).scalar_one_or_none()
-            if dup:
-                continue
-        else:
-            key = (trn["posted_date"], trn["amount"], trn["description"])
-            if key in seen_no_fitid:
-                continue
-            seen_no_fitid.add(key)
+
+        if dup is None:
+            # Fallback: same statement, same date/amount/desc
+            dup = db.execute(
+                select(StatementLine).where(
+                    StatementLine.statement_id == stmt.id,
+                    StatementLine.posted_date == trn["posted_date"],
+                    StatementLine.amount == trn["amount"],
+                    StatementLine.description == trn["description"],
+                )
+            ).scalar_one_or_none()
+
+        if dup:
+            continue
 
         db.add(
             StatementLine(
@@ -287,7 +314,7 @@ def import_ofx(
                 posted_date=trn["posted_date"],
                 amount=trn["amount"],
                 description=trn["description"],
-                fitid=trn["fitid"],
+                fitid=fitid,
             )
         )
         inserted += 1
