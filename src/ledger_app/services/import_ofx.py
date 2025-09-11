@@ -20,106 +20,70 @@ from loguru import logger
 from ..models import Statement, StatementLine
 
 
-def _safe_decimal(raw: str) -> Decimal | None:
-    """
-    Parse OFX/TRNAMT robustly:
-    - strip spaces
-    - remove thousands separators
-    - handle trailing minus (e.g., '50.00-')
-    - drop currency symbols or stray chars
-    Returns Decimal or None if not parseable.
-    """
+# --- Tolerant Decimal parser for TRNAMT ---
+def _safe_decimal(raw: str) -> Optional[Decimal]:
     s = (raw or "").strip().replace(",", "")
-    # handle trailing minus like '50.00-'
     if s.endswith("-") and len(s) > 1:
         s = "-" + s[:-1]
-    # remove everything except digits, minus, and dot
-    s = re.sub(r"[^0-9\.\-]", "", s)
+    s = re.sub(r"[^0-9.\-+]", "", s)  # drop currency symbols/strays
     try:
         return Decimal(s)
     except (InvalidOperation, ValueError):
         return None
 
 OFX_TXN_BLOCK_RE = re.compile(r"<STMTTRN>(.*?)</STMTTRN>", re.DOTALL | re.IGNORECASE)
+# --- STMTTRN block iterator (works with and without explicit </STMTTRN>) ---
+_STMTTRN_OPEN_RE = re.compile(r"<STMTTRN>", re.IGNORECASE)
+_STMTTRN_CLOSE_RE = re.compile(r"</STMTTRN>", re.IGNORECASE)
 
 def _parse_datetime(raw: str) -> date:
     ds = raw.strip()[:8]
     return datetime.strptime(ds, "%Y%m%d").date()
 
+# --- OFX date helpers ---
 def _parse_ofx_date(raw: str) -> date:
-    """
-    Parse an OFX date string like '20250107120000[-5:EST]' or '20250107'
-    into a Python date.
-    """
-    if not raw:
-        raise ValueError("Empty OFX date")
-    raw = raw.strip()
-    # First 8 chars are always YYYYMMDD
-    return datetime.strptime(raw[:8], "%Y%m%d").date()
-    
-LEDGERBAL_BLOCK_RE = re.compile(r"<LEDGERBAL>(.*?)</LEDGERBAL>", re.IGNORECASE | re.DOTALL)
+    # OFX dates always start with YYYYMMDD; ignore time/zone suffixes
+    return datetime.strptime(raw.strip()[:8], "%Y%m%d").date()
 
 def _closing_from_ofx(ofx_text: str) -> Optional[Decimal]:
-    """
-    Return closing balance from <LEDGERBAL><BALAMT>, falling back to the first <BALAMT>.
-    Uses _safe_decimal() to tolerate commas, trailing minus, and stray chars.
-    """
-    # Prefer the explicit <LEDGERBAL> block
-    m = LEDGERBAL_BLOCK_RE.search(ofx_text)
+    # Prefer value inside <LEDGERBAL>…</LEDGERBAL>
+    m = re.search(r"<LEDGERBAL>(.*?)</LEDGERBAL>", ofx_text, re.IGNORECASE | re.DOTALL)
     if m:
-        bal = _extract_tag(m.group(1), "BALAMT")  # expects you already have _extract_tag(tag)
+        bal = _extract_tag(m.group(1), "BALAMT")
         if bal:
-            val = _safe_decimal(bal)
-            if val is not None:
-                return val
-
-    # Fallback: first BALAMT anywhere (not ideal, but common in loose OFX/QFX)
+            v = _safe_decimal(bal)
+            if v is not None:
+                return v
+    # Fallback to first <BALAMT> anywhere
     bal_any = _extract_tag(ofx_text, "BALAMT")
     if bal_any:
-        val = _safe_decimal(bal_any)
-        if val is not None:
-            return val
-
+        v = _safe_decimal(bal_any)
+        if v is not None:
+            return v
     return None
 
 def _period_from_ofx(ofx_text: str) -> Tuple[Optional[date], Optional[date]]:
+    start = _extract_tag(ofx_text, "DTSTART")
+    end = _extract_tag(ofx_text, "DTEND")
+    ps = _parse_ofx_date(start) if start else None
+    pe = _parse_ofx_date(end) if end else None
+    return ps, pe
+
+# --- Robust tag extractor (handles SGML-style tags without explicit closing) ---
+def _extract_tag(text: str, tag: str) -> Optional[str]:
     """
-    Extract <DTSTART> and <DTEND> tags from the OFX text.
-    Returns (period_start, period_end) as date objects or (None, None) if not found.
+    Return the text immediately following <TAG> up until the next '<'.
+    Works for OFX SGML where tags may not be closed (e.g., <DTPOSTED>20250107).
     """
-    start_match = re.search(r"<DTSTART>(\d+)", ofx_text, re.IGNORECASE)
-    end_match = re.search(r"<DTEND>(\d+)", ofx_text, re.IGNORECASE)
-
-    period_start = None
-    period_end = None
-
-    if start_match:
-        try:
-            period_start = _parse_ofx_date(start_match.group(1))
-        except Exception:
-            pass
-
-    if end_match:
-        try:
-            period_end = _parse_ofx_date(end_match.group(1))
-        except Exception:
-            pass
-
-    return period_start, period_end
-
-def _extract_tag(block: str, tag: str) -> str | None:
-    pattern = re.compile(rf"<{tag}>([\s\S]*?)(?=\r?\n<|$)", re.IGNORECASE)
-    m = pattern.search(block)
+    m = re.search(rf"<{tag}>\s*([^<\r\n]+)", text, re.IGNORECASE)
     return m.group(1).strip() if m else None
 
 def _iter_stmttrn(ofx_text: str):
     """
-    Yield dicts with posted_date, amount, fitid, description from STMTTRN blocks.
-    Skips rows with missing/invalid DTPOSTED or TRNAMT.
+    Yield dicts: {posted_date: date, amount: Decimal, fitid: str|None, description: str}
+    Skips rows with malformed DTPOSTED/TRNAMT.
     """
-    for m in OFX_TXN_BLOCK_RE.finditer(ofx_text):
-        block = m.group(1)
-
+    for block in _iter_stmttrn_blocks(ofx_text):
         dt = _extract_tag(block, "DTPOSTED")
         amt = _extract_tag(block, "TRNAMT")
         fitid = _extract_tag(block, "FITID")
@@ -132,12 +96,11 @@ def _iter_stmttrn(ofx_text: str):
 
         amount = _safe_decimal(amt)
         if amount is None:
-            # don't crash the import; just skip this malformed row
             logger.warning(f"Skipping malformed TRNAMT: {amt!r}")
             continue
 
         try:
-            posted = _parse_ofx_date(dt)  # or _parse_datetime(dt) if you kept that name
+            posted = _parse_ofx_date(dt)
         except Exception:
             logger.warning(f"Skipping malformed DTPOSTED: {dt!r}")
             continue
@@ -149,6 +112,22 @@ def _iter_stmttrn(ofx_text: str):
             "description": desc[:255],
         }
 
+def _iter_stmttrn_blocks(text: str) -> Iterable[str]:
+    pos = 0
+    while True:
+        m_open = _STMTTRN_OPEN_RE.search(text, pos)
+        if not m_open:
+            break
+        start = m_open.end()
+        m_close = _STMTTRN_CLOSE_RE.search(text, start)
+        m_next_open = _STMTTRN_OPEN_RE.search(text, start)
+        if m_close and (not m_next_open or m_close.start() <= m_next_open.start()):
+            end = m_close.start()
+            pos = m_close.end()
+        else:
+            end = m_next_open.start() if m_next_open else len(text)
+            pos = end
+        yield text[start:end]
 
 def _get_or_create_statement(
     db: Session,
