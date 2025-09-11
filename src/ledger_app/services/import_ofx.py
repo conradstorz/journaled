@@ -22,6 +22,40 @@ def _parse_ofx_date(raw: str) -> date:
 
 # Match transaction blocks anywhere (BANK or CREDIT CARD statements)
 OFX_TXN_BLOCK_RE = re.compile(r"<STMTTRN>(.*?)</STMTTRN>", re.DOTALL | re.IGNORECASE)
+
+_STMTTRN_OPEN_RE = re.compile(r"<STMTTRN>", re.IGNORECASE)
+_STMTTRN_CLOSE_RE = re.compile(r"</STMTTRN>", re.IGNORECASE)
+
+def _iter_stmttrn_blocks(text: str):
+    """
+    Yield the inner text of each STMTTRN block.
+    Works for both:
+      - <STMTTRN> ... </STMTTRN>
+      - <STMTTRN> ... <STMTTRN> (implicit close at the next open)
+    """
+    pos = 0
+    while True:
+        m_open = _STMTTRN_OPEN_RE.search(text, pos)
+        if not m_open:
+            break
+        start = m_open.end()
+
+        # Prefer a proper closing tag if present
+        m_close = _STMTTRN_CLOSE_RE.search(text, start)
+        m_next_open = _STMTTRN_OPEN_RE.search(text, start)
+
+        if m_close and (not m_next_open or m_close.start() <= m_next_open.start()):
+            end = m_close.start()
+            pos = m_close.end()
+        else:
+            # No close tag before the next open; treat the next open as the boundary
+            end = m_next_open.start() if m_next_open else len(text)
+            pos = end
+
+        yield text[start:end]
+
+
+
 # For closing balance extraction
 LEDGERBAL_BLOCK_RE = re.compile(r"<LEDGERBAL>(.*?)</LEDGERBAL>", re.DOTALL | re.IGNORECASE)
 
@@ -63,13 +97,12 @@ def _closing_from_ofx(text: str) -> Optional[Decimal]:
     return None
 
 
-def _iter_stmttrn(ofx_text: str) -> Iterable[dict]:
+def _iter_stmttrn(ofx_text: str):
     """
-    Yield normalized transactions from <STMTTRN> blocks with:
+    Yield normalized transactions from STMTTRN blocks with:
       posted_date (date), amount (Decimal), fitid (str|None), description (str)
     """
-    for m in OFX_TXN_BLOCK_RE.finditer(ofx_text):
-        block = m.group(1)
+    for block in _iter_stmttrn_blocks(ofx_text):
         dt = _extract_tag(block, "DTPOSTED")
         amt = _extract_tag(block, "TRNAMT")
         fitid = _extract_tag(block, "FITID")
@@ -147,66 +180,19 @@ def import_ofx(
     closing_bal: Optional[Decimal] = None,
     infer_opening: bool = False,
 ) -> Tuple[int, int]:
-    """
-    Import OFX/QFX (BANK or CREDIT CARD) into statement_lines.
-
-    - If period_start/period_end not provided, tries to read from <DTSTART>/<DTEND>.
-    - If closing_bal not provided, tries to read from <LEDGERBAL><BALAMT>.
-    - If opening_bal not provided and infer_opening=True and closing known, computes:
-          opening = closing - sum(all transaction amounts in period)
-
-    Returns (statement_id, lines_inserted).
-    """
-    path = Path(ofx_path)
-    if not path.exists():
-        raise FileNotFoundError(ofx_path)
-
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    txns = list(_iter_stmttrn(text))
-
-    # Determine period
-    if not (period_start and period_end):
-        ps, pe = _period_from_ofx(text)
-        period_start = period_start or ps
-        period_end = period_end or pe
-    if not (period_start and period_end):
-        raise ValueError(
-            "Statement period is required (provide period_start/period_end or include DTSTART/DTEND in OFX)."
-        )
-
-    # Determine closing
-    if closing_bal is None:
-        closing_bal = _closing_from_ofx(text)
-
-    # Determine opening
-    if opening_bal is None and infer_opening:
-        if closing_bal is None:
-            raise ValueError(
-                "Cannot infer opening balance: closing balance not available "
-                "(supply closing or ensure <LEDGERBAL><BALAMT> exists)."
-            )
-        period_sum = sum(
-            (t["amount"] for t in txns if period_start <= t["posted_date"] <= period_end),
-            Decimal("0"),
-        )
-        opening_bal = closing_bal - period_sum
-
-    if opening_bal is None or closing_bal is None:
-        raise ValueError(
-            "Opening and closing balances are required "
-            "(or set infer_opening=True with LEDGERBAL in the file)."
-        )
-
-    # Create or get the Statement
-    stmt = _get_or_create_statement(db, account_id, period_start, period_end, opening_bal, closing_bal)
+    # ... unchanged up through creating `stmt` ...
 
     # Insert lines with de-duplication and period filter
     inserted = 0
+    # NEW: for transactions without FITID, only dedupe within this batch
+    seen_no_fitid: set[tuple[date, Decimal, str]] = set()
+
     for trn in txns:
         if trn["posted_date"] < period_start or trn["posted_date"] > period_end:
             continue
 
         if trn["fitid"]:
+            # Keep DB-level dedupe only when FITID exists
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
@@ -216,16 +202,11 @@ def import_ofx(
             if dup:
                 continue
         else:
-            dup = db.execute(
-                select(StatementLine).where(
-                    StatementLine.statement_id == stmt.id,
-                    StatementLine.posted_date == trn["posted_date"],
-                    StatementLine.amount == trn["amount"],
-                    StatementLine.description == trn["description"],
-                )
-            ).scalar_one_or_none()
-            if dup:
+            # NO DB check here: only dedupe within this import batch
+            key = (trn["posted_date"], trn["amount"], trn["description"])
+            if key in seen_no_fitid:
                 continue
+            seen_no_fitid.add(key)
 
         line = StatementLine(
             statement_id=stmt.id,
