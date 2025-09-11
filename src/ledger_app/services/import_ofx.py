@@ -180,11 +180,40 @@ def import_ofx(
     closing_bal: Optional[Decimal] = None,
     infer_opening: bool = False,
 ) -> Tuple[int, int]:
-    # ... unchanged up through creating `stmt` ...
+    """Import an OFX/QFX file into statements and statement lines.
+
+    Returns (statement_id, inserted_count).
+    """
+    with open(ofx_path, "r", encoding="utf-8", errors="ignore") as f:
+        text = f.read()
+
+    txns = list(_iter_stmttrn(text))
+    if not txns:
+        logger.warning("No transactions found in OFX file %s", ofx_path)
+        # still create a statement if period_start/end provided
+        if not (period_start and period_end):
+            return -1, 0
+
+    if not period_start or not period_end:
+        dates = [t["posted_date"] for t in txns]
+        if dates:
+            period_start = min(dates)
+            period_end = max(dates)
+        else:
+            raise ValueError("No transactions and no explicit period provided")
+
+    stmt = Statement(
+        account_id=account_id,
+        period_start=period_start,
+        period_end=period_end,
+        opening_balance=opening_bal,
+        closing_balance=closing_bal,
+    )
+    db.add(stmt)
+    db.flush()  # get stmt.id
 
     # Insert lines with de-duplication and period filter
     inserted = 0
-    # NEW: for transactions without FITID, only dedupe within this batch
     seen_no_fitid: set[tuple[date, Decimal, str]] = set()
 
     for trn in txns:
@@ -192,7 +221,6 @@ def import_ofx(
             continue
 
         if trn["fitid"]:
-            # Keep DB-level dedupe only when FITID exists
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
@@ -202,7 +230,6 @@ def import_ofx(
             if dup:
                 continue
         else:
-            # NO DB check here: only dedupe within this import batch
             key = (trn["posted_date"], trn["amount"], trn["description"])
             if key in seen_no_fitid:
                 continue
