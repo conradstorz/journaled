@@ -2,6 +2,14 @@ from __future__ import annotations
 import re
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
+"""
+def _parse_ofx_date(raw: str) -> date:
+    # '20250107120000[-5:EST]' -> 2025-01-07
+    return datetime.strptime(raw.strip()[:8], "%Y%m%d").date()
+
+# if your code refers to _parse_datetime, alias it:
+_parse_datetime = _parse_ofx_date
+"""
 from pathlib import Path
 from typing import Optional, Iterable, Tuple
 
@@ -11,11 +19,93 @@ from loguru import logger
 
 from ..models import Statement, StatementLine
 
+
+def _safe_decimal(raw: str) -> Decimal | None:
+    """
+    Parse OFX/TRNAMT robustly:
+    - strip spaces
+    - remove thousands separators
+    - handle trailing minus (e.g., '50.00-')
+    - drop currency symbols or stray chars
+    Returns Decimal or None if not parseable.
+    """
+    s = (raw or "").strip().replace(",", "")
+    # handle trailing minus like '50.00-'
+    if s.endswith("-") and len(s) > 1:
+        s = "-" + s[:-1]
+    # remove everything except digits, minus, and dot
+    s = re.sub(r"[^0-9\.\-]", "", s)
+    try:
+        return Decimal(s)
+    except (InvalidOperation, ValueError):
+        return None
+
 OFX_TXN_BLOCK_RE = re.compile(r"<STMTTRN>(.*?)</STMTTRN>", re.DOTALL | re.IGNORECASE)
 
 def _parse_datetime(raw: str) -> date:
     ds = raw.strip()[:8]
     return datetime.strptime(ds, "%Y%m%d").date()
+
+def _parse_ofx_date(raw: str) -> date:
+    """
+    Parse an OFX date string like '20250107120000[-5:EST]' or '20250107'
+    into a Python date.
+    """
+    if not raw:
+        raise ValueError("Empty OFX date")
+    raw = raw.strip()
+    # First 8 chars are always YYYYMMDD
+    return datetime.strptime(raw[:8], "%Y%m%d").date()
+    
+LEDGERBAL_BLOCK_RE = re.compile(r"<LEDGERBAL>(.*?)</LEDGERBAL>", re.IGNORECASE | re.DOTALL)
+
+def _closing_from_ofx(ofx_text: str) -> Optional[Decimal]:
+    """
+    Return closing balance from <LEDGERBAL><BALAMT>, falling back to the first <BALAMT>.
+    Uses _safe_decimal() to tolerate commas, trailing minus, and stray chars.
+    """
+    # Prefer the explicit <LEDGERBAL> block
+    m = LEDGERBAL_BLOCK_RE.search(ofx_text)
+    if m:
+        bal = _extract_tag(m.group(1), "BALAMT")  # expects you already have _extract_tag(tag)
+        if bal:
+            val = _safe_decimal(bal)
+            if val is not None:
+                return val
+
+    # Fallback: first BALAMT anywhere (not ideal, but common in loose OFX/QFX)
+    bal_any = _extract_tag(ofx_text, "BALAMT")
+    if bal_any:
+        val = _safe_decimal(bal_any)
+        if val is not None:
+            return val
+
+    return None
+
+def _period_from_ofx(ofx_text: str) -> Tuple[Optional[date], Optional[date]]:
+    """
+    Extract <DTSTART> and <DTEND> tags from the OFX text.
+    Returns (period_start, period_end) as date objects or (None, None) if not found.
+    """
+    start_match = re.search(r"<DTSTART>(\d+)", ofx_text, re.IGNORECASE)
+    end_match = re.search(r"<DTEND>(\d+)", ofx_text, re.IGNORECASE)
+
+    period_start = None
+    period_end = None
+
+    if start_match:
+        try:
+            period_start = _parse_ofx_date(start_match.group(1))
+        except Exception:
+            pass
+
+    if end_match:
+        try:
+            period_end = _parse_ofx_date(end_match.group(1))
+        except Exception:
+            pass
+
+    return period_start, period_end
 
 def _extract_tag(block: str, tag: str) -> str | None:
     pattern = re.compile(rf"<{tag}>([\s\S]*?)(?=\r?\n<|$)", re.IGNORECASE)
@@ -23,22 +113,42 @@ def _extract_tag(block: str, tag: str) -> str | None:
     return m.group(1).strip() if m else None
 
 def _iter_stmttrn(ofx_text: str):
+    """
+    Yield dicts with posted_date, amount, fitid, description from STMTTRN blocks.
+    Skips rows with missing/invalid DTPOSTED or TRNAMT.
+    """
     for m in OFX_TXN_BLOCK_RE.finditer(ofx_text):
         block = m.group(1)
+
         dt = _extract_tag(block, "DTPOSTED")
         amt = _extract_tag(block, "TRNAMT")
         fitid = _extract_tag(block, "FITID")
         name = _extract_tag(block, "NAME") or ""
         memo = _extract_tag(block, "MEMO") or ""
         desc = (name + " " + memo).strip() or name or memo
+
         if not dt or not amt:
             continue
+
+        amount = _safe_decimal(amt)
+        if amount is None:
+            # don't crash the import; just skip this malformed row
+            logger.warning(f"Skipping malformed TRNAMT: {amt!r}")
+            continue
+
+        try:
+            posted = _parse_ofx_date(dt)  # or _parse_datetime(dt) if you kept that name
+        except Exception:
+            logger.warning(f"Skipping malformed DTPOSTED: {dt!r}")
+            continue
+
         yield {
-            "posted_date": _parse_datetime(dt),
-            "amount": Decimal(amt.replace(",", "")),
+            "posted_date": posted,
+            "amount": amount,
             "fitid": (fitid or "").strip() or None,
             "description": desc[:255],
         }
+
 
 def _get_or_create_statement(
     db: Session,
