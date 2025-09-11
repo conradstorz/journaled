@@ -1,49 +1,65 @@
+# src/ledger_app/services/import_ofx.py
 from __future__ import annotations
+
 import re
+from pathlib import Path
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
-"""
-def _parse_ofx_date(raw: str) -> date:
-    # '20250107120000[-5:EST]' -> 2025-01-07
-    return datetime.strptime(raw.strip()[:8], "%Y%m%d").date()
+from typing import Iterable, Optional, Tuple
 
-# if your code refers to _parse_datetime, alias it:
-_parse_datetime = _parse_ofx_date
-"""
-from pathlib import Path
-from typing import Optional, Iterable, Tuple
-
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from loguru import logger
 
 from ..models import Statement, StatementLine
 
 
-# --- Tolerant Decimal parser for TRNAMT ---
+# -------------------------
+# Small parsing utilities
+# -------------------------
+
+def _extract_tag(text: str, tag: str) -> Optional[str]:
+    """
+    Return the text immediately following <TAG> up until the next '<'.
+    Works for OFX SGML where tags may not be explicitly closed.
+    """
+    m = re.search(rf"<{tag}>\s*([^<\r\n]+)", text, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
 def _safe_decimal(raw: str) -> Optional[Decimal]:
+    """
+    Parse TRNAMT robustly:
+    - strip spaces
+    - remove thousands separators
+    - handle trailing minus (e.g., '50.00-')
+    - drop currency symbols or stray chars
+    Returns Decimal or None if not parseable.
+    """
     s = (raw or "").strip().replace(",", "")
     if s.endswith("-") and len(s) > 1:
         s = "-" + s[:-1]
-    s = re.sub(r"[^0-9.\-+]", "", s)  # drop currency symbols/strays
+    s = re.sub(r"[^0-9.\-+]", "", s)
     try:
         return Decimal(s)
     except (InvalidOperation, ValueError):
         return None
 
-OFX_TXN_BLOCK_RE = re.compile(r"<STMTTRN>(.*?)</STMTTRN>", re.DOTALL | re.IGNORECASE)
-# --- STMTTRN block iterator (works with and without explicit </STMTTRN>) ---
-_STMTTRN_OPEN_RE = re.compile(r"<STMTTRN>", re.IGNORECASE)
-_STMTTRN_CLOSE_RE = re.compile(r"</STMTTRN>", re.IGNORECASE)
 
-def _parse_datetime(raw: str) -> date:
-    ds = raw.strip()[:8]
-    return datetime.strptime(ds, "%Y%m%d").date()
-
-# --- OFX date helpers ---
 def _parse_ofx_date(raw: str) -> date:
-    # OFX dates always start with YYYYMMDD; ignore time/zone suffixes
+    """
+    OFX dates start with YYYYMMDD; ignore time/zone suffixes.
+    """
     return datetime.strptime(raw.strip()[:8], "%Y%m%d").date()
+
+
+def _period_from_ofx(ofx_text: str) -> Tuple[Optional[date], Optional[date]]:
+    start = _extract_tag(ofx_text, "DTSTART")
+    end = _extract_tag(ofx_text, "DTEND")
+    ps = _parse_ofx_date(start) if start else None
+    pe = _parse_ofx_date(end) if end else None
+    return ps, pe
+
 
 def _closing_from_ofx(ofx_text: str) -> Optional[Decimal]:
     # Prefer value inside <LEDGERBAL>…</LEDGERBAL>
@@ -62,21 +78,36 @@ def _closing_from_ofx(ofx_text: str) -> Optional[Decimal]:
             return v
     return None
 
-def _period_from_ofx(ofx_text: str) -> Tuple[Optional[date], Optional[date]]:
-    start = _extract_tag(ofx_text, "DTSTART")
-    end = _extract_tag(ofx_text, "DTEND")
-    ps = _parse_ofx_date(start) if start else None
-    pe = _parse_ofx_date(end) if end else None
-    return ps, pe
 
-# --- Robust tag extractor (handles SGML-style tags without explicit closing) ---
-def _extract_tag(text: str, tag: str) -> Optional[str]:
+# -------------------------
+# STMTTRN block iteration
+# -------------------------
+
+_STMTTRN_OPEN_RE = re.compile(r"<STMTTRN>", re.IGNORECASE)
+_STMTTRN_CLOSE_RE = re.compile(r"</STMTTRN>", re.IGNORECASE)
+
+def _iter_stmttrn_blocks(text: str) -> Iterable[str]:
     """
-    Return the text immediately following <TAG> up until the next '<'.
-    Works for OFX SGML where tags may not be closed (e.g., <DTPOSTED>20250107).
+    Yield inner text for each STMTTRN block.
+    Works with closed </STMTTRN> and SGML-style unclosed blocks.
     """
-    m = re.search(rf"<{tag}>\s*([^<\r\n]+)", text, re.IGNORECASE)
-    return m.group(1).strip() if m else None
+    pos = 0
+    while True:
+        m_open = _STMTTRN_OPEN_RE.search(text, pos)
+        if not m_open:
+            break
+        start = m_open.end()
+        m_close = _STMTTRN_CLOSE_RE.search(text, start)
+        m_next_open = _STMTTRN_OPEN_RE.search(text, start)
+
+        if m_close and (not m_next_open or m_close.start() <= m_next_open.start()):
+            end = m_close.start()
+            pos = m_close.end()
+        else:
+            end = m_next_open.start() if m_next_open else len(text)
+            pos = end
+        yield text[start:end]
+
 
 def _iter_stmttrn(ofx_text: str):
     """
@@ -112,45 +143,45 @@ def _iter_stmttrn(ofx_text: str):
             "description": desc[:255],
         }
 
-def _iter_stmttrn_blocks(text: str) -> Iterable[str]:
-    pos = 0
-    while True:
-        m_open = _STMTTRN_OPEN_RE.search(text, pos)
-        if not m_open:
-            break
-        start = m_open.end()
-        m_close = _STMTTRN_CLOSE_RE.search(text, start)
-        m_next_open = _STMTTRN_OPEN_RE.search(text, start)
-        if m_close and (not m_next_open or m_close.start() <= m_next_open.start()):
-            end = m_close.start()
-            pos = m_close.end()
-        else:
-            end = m_next_open.start() if m_next_open else len(text)
-            pos = end
-        yield text[start:end]
+
+# -------------------------
+# Statement helpers
+# -------------------------
 
 def _get_or_create_statement(
     db: Session,
+    *,
     account_id: int,
     period_start: date,
     period_end: date,
     opening_bal: Decimal,
     closing_bal: Decimal,
 ) -> Statement:
-    stmt = db.execute(
+    """
+    Re-use existing statement by (account_id, period_start, period_end), or create one.
+    """
+    existing = db.execute(
         select(Statement).where(
             Statement.account_id == account_id,
             Statement.period_start == period_start,
             Statement.period_end == period_end,
         )
     ).scalar_one_or_none()
-    if stmt:
-        if stmt.opening_bal is None:
-            stmt.opening_bal = opening_bal
-        if stmt.closing_bal is None:
-            stmt.closing_bal = closing_bal
-        db.add(stmt); db.flush()
-        return stmt
+
+    if existing:
+        # backfill balances if missing
+        updated = False
+        if existing.opening_bal is None:
+            existing.opening_bal = opening_bal
+            updated = True
+        if existing.closing_bal is None:
+            existing.closing_bal = closing_bal
+            updated = True
+        if updated:
+            db.add(existing)
+            db.flush()
+        return existing
+
     stmt = Statement(
         account_id=account_id,
         period_start=period_start,
@@ -158,8 +189,14 @@ def _get_or_create_statement(
         opening_bal=opening_bal,
         closing_bal=closing_bal,
     )
-    db.add(stmt); db.flush()
+    db.add(stmt)
+    db.flush()
     return stmt
+
+
+# -------------------------
+# Public entry point
+# -------------------------
 
 def import_ofx(
     db: Session,
@@ -172,37 +209,32 @@ def import_ofx(
     closing_bal: Optional[Decimal] = None,
     infer_opening: bool = False,
 ) -> Tuple[int, int]:
-    """Import OFX/QFX and return (statement_id, inserted_count)."""
-    path = Path(ofx_path)
-    if not path.exists():
-        raise FileNotFoundError(ofx_path)
-
-    text = path.read_text(encoding="utf-8", errors="ignore")
+    """
+    Import OFX/QFX into Statement + StatementLine.
+    Returns (statement_id, inserted_count).
+    """
+    text = Path(ofx_path).read_text(encoding="utf-8", errors="ignore")
     txns = list(_iter_stmttrn(text))
 
-    # Determine period
+    # Determine statement period
     if not (period_start and period_end):
         ps, pe = _period_from_ofx(text)
         period_start = period_start or ps
         period_end = period_end or pe
     if not (period_start and period_end):
-        # as a fallback (no DTSTART/DTEND), derive from txn dates if any
         if txns:
             dates = [t["posted_date"] for t in txns]
-            period_start = min(dates)
-            period_end = max(dates)
+            period_start, period_end = min(dates), max(dates)
         else:
-            raise ValueError("Statement period is required (DTSTART/DTEND or explicit arguments).")
+            raise ValueError("Statement period is required (DTSTART/DTEND or explicit args).")
 
-    # Determine balances
+    # Balances
     if closing_bal is None:
         closing_bal = _closing_from_ofx(text)
 
     if opening_bal is None and infer_opening:
         if closing_bal is None:
-            raise ValueError(
-                "Cannot infer opening balance without a closing balance (provide closing_bal or include <LEDGERBAL><BALAMT>)."
-            )
+            raise ValueError("Cannot infer opening balance without a closing balance.")
         period_sum = sum(
             (t["amount"] for t in txns if period_start <= t["posted_date"] <= period_end),
             Decimal("0"),
@@ -211,10 +243,10 @@ def import_ofx(
 
     if opening_bal is None or closing_bal is None:
         raise ValueError(
-            "opening_bal and closing_bal are required (or set infer_opening=True with a closing balance present)."
+            "opening_bal and closing_bal are required (or set infer_opening=True with a closing balance)."
         )
 
-    # Get or create the Statement (idempotent across imports)
+    # Get/create statement (idempotent)
     stmt = _get_or_create_statement(
         db=db,
         account_id=account_id,
@@ -224,9 +256,9 @@ def import_ofx(
         closing_bal=closing_bal,
     )
 
-    # Insert lines with dedupe:
+    # Insert lines with dedupe strategy:
     # - If FITID present → dedupe against DB by FITID
-    # - If FITID missing → dedupe only within this batch (avoid blocking due to other importers)
+    # - If FITID missing → dedupe only within this import batch
     inserted = 0
     seen_no_fitid: set[tuple[date, Decimal, str]] = set()
 
@@ -249,16 +281,16 @@ def import_ofx(
                 continue
             seen_no_fitid.add(key)
 
-        line = StatementLine(
-            statement_id=stmt.id,
-            posted_date=trn["posted_date"],
-            amount=trn["amount"],
-            description=trn["description"],
-            fitid=trn["fitid"],
+        db.add(
+            StatementLine(
+                statement_id=stmt.id,
+                posted_date=trn["posted_date"],
+                amount=trn["amount"],
+                description=trn["description"],
+                fitid=trn["fitid"],
+            )
         )
-        db.add(line)
         inserted += 1
 
     db.commit()
     return stmt.id, inserted
-
