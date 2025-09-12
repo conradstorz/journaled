@@ -268,56 +268,49 @@ def import_ofx(
     )
 
     # Insert lines with dedupe:
-    # - In-batch dedupe:
-    #     * if FITID present  -> by FITID
-    #     * if FITID missing  -> by (date, amount, desc)
-    # - DB dedupe (same statement):
-    #     * if FITID present  -> first by FITID, then (date, amount, desc) fallback
-    #     * if FITID missing  -> by (date, amount, desc)
-    inserted = 0
-    seen_fitids: set[str] = set()
-    seen_no_fitid: set[tuple[date, Decimal, str]] = set()
+# Insert lines with dedupe:
+# - In-batch:
+#     * FITID present  -> by FITID
+#     * FITID missing  -> by (date, amount, desc)
+# - DB (same statement):
+#     * FITID present  -> first by FITID, then fallback (date, amount, desc)
+#     * FITID missing  -> by (date, amount, desc)
+inserted = 0
+seen_fitids: set[str] = set()
+seen_no_fitid: set[tuple[date, Decimal, str]] = set()
 
-    for trn in txns:
-        if not (period_start <= trn["posted_date"] <= period_end):
+logger.debug(
+    "txns parsed: {}",
+    [(t["fitid"], t["posted_date"], t["amount"], t["description"]) for t in txns],
+)
+
+for trn in txns:
+    if not (period_start <= trn["posted_date"] <= period_end):
+        continue
+
+    fitid = trn["fitid"]
+    triple = (trn["posted_date"], trn["amount"], trn["description"])
+
+    # in-batch
+    if fitid:
+        if fitid in seen_fitids:
             continue
+        seen_fitids.add(fitid)
+    else:
+        if triple in seen_no_fitid:
+            continue
+        seen_no_fitid.add(triple)
 
-        fitid = trn["fitid"]
-        triple = (trn["posted_date"], trn["amount"], trn["description"])
-
-        # --- In-batch dedupe ---
-        if fitid:
-            if fitid in seen_fitids:
-                continue
-            seen_fitids.add(fitid)
-        else:
-            if triple in seen_no_fitid:
-                continue
-            seen_no_fitid.add(triple)
-
-        # --- DB dedupe within the same statement ---
-        dup = None
-        if fitid:
-            # Primary: by FITID
-            dup = db.execute(
-                select(StatementLine).where(
-                    StatementLine.statement_id == stmt.id,
-                    StatementLine.fitid == fitid,
-                )
-            ).scalar_one_or_none()
-
-            # Fallback: (date, amount, desc)
-            if dup is None:
-                dup = db.execute(
-                    select(StatementLine).where(
-                        StatementLine.statement_id == stmt.id,
-                        StatementLine.posted_date == trn["posted_date"],
-                        StatementLine.amount == trn["amount"],
-                        StatementLine.description == trn["description"],
-                    )
-                ).scalar_one_or_none()
-        else:
-            # No FITID at all -> rely on the triple
+    # DB dedupe
+    dup = None
+    if fitid:
+        dup = db.execute(
+            select(StatementLine).where(
+                StatementLine.statement_id == stmt.id,
+                StatementLine.fitid == fitid,
+            )
+        ).scalar_one_or_none()
+        if dup is None:
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
@@ -326,20 +319,28 @@ def import_ofx(
                     StatementLine.description == trn["description"],
                 )
             ).scalar_one_or_none()
-
-        if dup:
-            continue
-
-        db.add(
-            StatementLine(
-                statement_id=stmt.id,
-                posted_date=trn["posted_date"],
-                amount=trn["amount"],
-                description=trn["description"],
-                fitid=fitid,
+    else:
+        dup = db.execute(
+            select(StatementLine).where(
+                StatementLine.statement_id == stmt.id,
+                StatementLine.posted_date == trn["posted_date"],
+                StatementLine.amount == trn["amount"],
+                StatementLine.description == trn["description"],
             )
-        )
-        inserted += 1
+        ).scalar_one_or_none()
 
-    db.commit()
-    return stmt.id, inserted
+    if dup:
+        continue
+
+    db.add(StatementLine(
+        statement_id=stmt.id,
+        posted_date=trn["posted_date"],
+        amount=trn["amount"],
+        description=trn["description"],
+        fitid=fitid,
+    ))
+    inserted += 1
+
+db.commit()
+return stmt.id, inserted
+
