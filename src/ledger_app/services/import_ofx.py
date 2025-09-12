@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional, Tuple, Set
 
 from loguru import logger
 from sqlalchemy import select
@@ -15,23 +15,23 @@ from ..models import Statement, StatementLine
 
 
 # -------------------------
-# Small parsing utilities
+# Parsing utilities
 # -------------------------
 
-def _normalize_description(s: str) -> str:
-    # collapse any whitespace runs to single spaces, strip ends
-    # keep case? or make it case-insensitive; tests only assert on amounts,
-    # but normalization reduces spurious mismatches
-    return re.sub(r"\s+", " ", (s or "").strip())
-
+TAG_VALUE = re.compile(r"<(?P<tag>[A-Za-z0-9_]+)>\s*([^<\r\n]+)", re.IGNORECASE)
 
 def _extract_tag(text: str, tag: str) -> Optional[str]:
     """
     Return the text immediately following <TAG> up until the next '<'.
-    Works for OFX SGML where tags may not be explicitly closed.
+    Works for OFX/QFX SGML where tags may not be explicitly closed.
     """
     m = re.search(rf"<{tag}>\s*([^<\r\n]+)", text, re.IGNORECASE)
     return m.group(1).strip() if m else None
+
+
+def _normalize_description(s: str) -> str:
+    """Normalize description to make dedupe stable."""
+    return re.sub(r"\s+", " ", (s or "").strip())
 
 
 def _safe_decimal(raw: str) -> Optional[Decimal]:
@@ -48,8 +48,7 @@ def _safe_decimal(raw: str) -> Optional[Decimal]:
     s = raw.strip().replace(",", "")
     if s.endswith("-") and len(s) > 1:
         s = "-" + s[:-1]
-    # Only allow digits, decimal point, and sign at the start
-    s = re.sub(r"[^0-9.+-]", "", s)
+    s = re.sub(r"[^0-9.\-+]", "", s)
     try:
         return Decimal(s)
     except (InvalidOperation, ValueError):
@@ -57,9 +56,7 @@ def _safe_decimal(raw: str) -> Optional[Decimal]:
 
 
 def _parse_ofx_date(raw: str) -> date:
-    """
-    OFX dates start with YYYYMMDD; ignore time/zone suffixes.
-    """
+    """OFX dates start with YYYYMMDD; ignore time/zone suffixes."""
     return datetime.strptime(raw.strip()[:8], "%Y%m%d").date()
 
 
@@ -90,7 +87,7 @@ def _closing_from_ofx(ofx_text: str) -> Optional[Decimal]:
 
 
 # -------------------------
-# STMTTRN block iteration
+# STMTTRN iteration
 # -------------------------
 
 _STMTTRN_OPEN_RE = re.compile(r"<STMTTRN>", re.IGNORECASE)
@@ -130,8 +127,7 @@ def _iter_stmttrn(ofx_text: str):
         fitid = _extract_tag(block, "FITID")
         name = _extract_tag(block, "NAME") or ""
         memo = _extract_tag(block, "MEMO") or ""
-        desc_raw = (name + " " + memo).strip() or name or memo
-        desc = _normalize_description(desc_raw)[:255]
+        desc = _normalize_description((name + " " + memo).strip() or name or memo)
 
         if not dt or not amt:
             continue
@@ -151,12 +147,12 @@ def _iter_stmttrn(ofx_text: str):
             "posted_date": posted,
             "amount": amount,
             "fitid": (fitid or "").strip() or None,
-            "description": desc,
+            "description": desc[:255],
         }
 
 
 # -------------------------
-# Statement helpers
+# Statement helper
 # -------------------------
 
 def _get_or_create_statement(
@@ -167,7 +163,7 @@ def _get_or_create_statement(
     period_end: date,
     opening_bal: Decimal,
     closing_bal: Decimal,
-    ) -> Statement:
+) -> Statement:
     """
     Re-use existing statement by (account_id, period_start, period_end), or create one.
     """
@@ -180,7 +176,6 @@ def _get_or_create_statement(
     ).scalar_one_or_none()
 
     if existing:
-        # backfill balances if missing
         updated = False
         if existing.opening_bal is None:
             existing.opening_bal = opening_bal
@@ -219,7 +214,7 @@ def import_ofx(
     opening_bal: Optional[Decimal] = None,
     closing_bal: Optional[Decimal] = None,
     infer_opening: bool = False,
-    ) -> Tuple[int, int]:
+) -> Tuple[int, int]:
     """
     Import OFX/QFX into Statement + StatementLine.
     Returns (statement_id, inserted_count).
@@ -267,8 +262,8 @@ def import_ofx(
         closing_bal=closing_bal,
     )
 
-    # Build fast lookup sets of what's already in this statement
-    existing_fitids = {
+    # Snapshot what's already present for this statement (fast dedupe)
+    existing_fitids: Set[str] = {
         fid for (fid,) in db.execute(
             select(StatementLine.fitid).where(
                 StatementLine.statement_id == stmt.id,
@@ -277,7 +272,7 @@ def import_ofx(
         )
         if fid is not None
     }
-    existing_triples = {
+    existing_triples: Set[tuple[date, Decimal, str]] = {
         (pd, amt, desc) for (pd, amt, desc) in db.execute(
             select(
                 StatementLine.posted_date,
@@ -288,8 +283,8 @@ def import_ofx(
     }
 
     inserted = 0
-    seen_fitids: set[str] = set()
-    seen_no_fitid: set[tuple[date, Decimal, str]] = set()
+    seen_fitids: Set[str] = set()
+    seen_no_fitid: Set[tuple[date, Decimal, str]] = set()
 
     logger.debug(
         "txns parsed: {}",
@@ -297,6 +292,7 @@ def import_ofx(
     )
 
     for trn in txns:
+        # Period guard
         if not (period_start <= trn["posted_date"] <= period_end):
             continue
 
@@ -313,9 +309,13 @@ def import_ofx(
                 continue
             seen_no_fitid.add(triple)
 
-        # DB snapshot dedupe
+        # DB snapshot dedupe (same statement)
         if fitid:
+            # primary: FITID
             if fitid in existing_fitids:
+                continue
+            # fallback: triple (guards against FITID variance across downloads)
+            if triple in existing_triples:
                 continue
         else:
             if triple in existing_triples:
@@ -333,11 +333,10 @@ def import_ofx(
         )
         inserted += 1
 
-        # Update snapshots so further iterations also see this
+        # update snapshots
         if fitid:
             existing_fitids.add(fitid)
-        else:
-            existing_triples.add(triple)
+        existing_triples.add(triple)
 
     db.commit()
     return stmt.id, inserted
