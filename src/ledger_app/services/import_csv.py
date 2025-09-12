@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from loguru import logger
 
-from ..models import Statement, StatementLine
+from ..models import Base, Statement, StatementLine
 
 def _get_or_create_statement(
     db: Session,
