@@ -204,6 +204,153 @@ def _get_or_create_statement(
 # Public entry point
 # -------------------------
 
+
+# -------------------------
+# Helper functions for import_ofx
+# -------------------------
+def _determine_statement_period(txns, text, period_start, period_end):
+    """
+    Determine the statement period using provided arguments, OFX tags, or transaction dates.
+    """
+    # If period_start and period_end are not both provided, try to extract from OFX tags
+    if not (period_start and period_end):
+        ps, pe = _period_from_ofx(text)
+        period_start = period_start or ps
+        period_end = period_end or pe
+    # If still missing, infer from transaction dates (fallback)
+    if not (period_start and period_end):
+        if txns:
+            dates = [t["posted_date"] for t in txns]
+            period_start, period_end = min(dates), max(dates)
+        else:
+            # No transactions and no period info: cannot proceed
+            raise ValueError("Statement period is required (DTSTART/DTEND or explicit args).")
+    return period_start, period_end
+
+def _determine_balances(txns, text, period_start, period_end, opening_bal, closing_bal, infer_opening):
+    """
+    Determine opening and closing balances, inferring opening if requested.
+    """
+    # If closing balance not provided, try to extract from OFX
+    if closing_bal is None:
+        closing_bal = _closing_from_ofx(text)
+
+    # If opening balance is not provided, but infer_opening is set, calculate it
+    if opening_bal is None and infer_opening:
+        if closing_bal is None:
+            # Cannot infer opening without a closing balance
+            raise ValueError("Cannot infer opening balance without a closing balance.")
+        # Sum all transaction amounts within the statement period
+        period_sum = sum(
+            (t["amount"] for t in txns if period_start <= t["posted_date"] <= period_end),
+            Decimal("0"),
+        )
+        # Opening = closing - sum(period txns)
+        opening_bal = closing_bal - period_sum
+
+    # Both balances must be present at this point
+    if opening_bal is None or closing_bal is None:
+        raise ValueError(
+            "opening_bal and closing_bal are required (or set infer_opening=True with a closing balance)."
+        )
+    return opening_bal, closing_bal
+
+def _prepare_deduplication_sets(db, stmt):
+    """
+    Prepare sets of FITIDs and (date, amount, description) triples already present for this statement.
+    """
+    # Set of FITIDs already present in DB for this statement (for fast dedupe)
+    existing_fitids: Set[str] = {
+        fid for (fid,) in db.execute(
+            select(StatementLine.fitid).where(
+                StatementLine.statement_id == stmt.id,
+                StatementLine.fitid.is_not(None),
+            )
+        )
+        if fid is not None
+    }
+    # Set of (date, amount, description) triples already present (for fallback dedupe)
+    existing_triples: Set[tuple[date, Decimal, str]] = {
+        (pd, amt, desc) for (pd, amt, desc) in db.execute(
+            select(
+                StatementLine.posted_date,
+                StatementLine.amount,
+                StatementLine.description,
+            ).where(StatementLine.statement_id == stmt.id)
+        )
+    }
+    return existing_fitids, existing_triples
+
+def _import_statement_lines(db, stmt, txns, period_start, period_end, existing_fitids, existing_triples):
+    """
+    Insert new StatementLine records for transactions within the statement period, avoiding duplicates.
+    Returns the number of inserted records.
+    """
+    inserted = 0
+    # Track FITIDs and triples seen in this import batch (to avoid in-batch dupes)
+    seen_fitids: Set[str] = set()
+    seen_no_fitid: Set[tuple[date, Decimal, str]] = set()
+
+    # Log all parsed transactions for debugging
+    logger.debug(
+        "txns parsed: {}",
+        [(t["fitid"], t["posted_date"], t["amount"], t["description"]) for t in txns],
+    )
+
+    # Main import loop: insert new StatementLines
+    for trn in txns:
+        # Only import transactions within the statement period
+        if not (period_start <= trn["posted_date"] <= period_end):
+            continue
+
+        fitid = trn["fitid"]
+        triple = (trn["posted_date"], trn["amount"], trn["description"])
+
+        # In-batch deduplication: skip if already seen in this batch
+        if fitid:
+            if fitid in seen_fitids:
+                continue
+            seen_fitids.add(fitid)
+        else:
+            if triple in seen_no_fitid:
+                continue
+            seen_no_fitid.add(triple)
+
+        # DB snapshot deduplication (for this statement):
+        if fitid:
+            # Primary dedupe: skip if FITID already in DB
+            if fitid in existing_fitids:
+                continue
+            # Fallback: skip if triple already in DB (handles FITID changes)
+            if triple in existing_triples:
+                continue
+        else:
+            # If no FITID, dedupe only by triple
+            if triple in existing_triples:
+                continue
+
+        # Passed all dedupe checks: insert new StatementLine
+        db.add(
+            StatementLine(
+                statement_id=stmt.id,
+                posted_date=trn["posted_date"],
+                amount=trn["amount"],
+                description=trn["description"],
+                fitid=fitid,
+            )
+        )
+        inserted += 1
+
+        # Update dedupe sets so subsequent txns in this batch see this one
+        if fitid:
+            existing_fitids.add(fitid)
+        existing_triples.add(triple)
+
+    return inserted
+
+# -------------------------
+# Public entry point
+# -------------------------
 def import_ofx(
     db: Session,
     *,
@@ -213,169 +360,40 @@ def import_ofx(
     period_end: Optional[date] = None,
     opening_bal: Optional[Decimal] = None,
     closing_bal: Optional[Decimal] = None,
-    def import_ofx(
-        db: Session,
-        *,
-        account_id: int,
-        ofx_path: str,
-        period_start: Optional[date] = None,
-        period_end: Optional[date] = None,
-        opening_bal: Optional[Decimal] = None,
-        closing_bal: Optional[Decimal] = None,
-        infer_opening: bool = False,
+    infer_opening: bool = False,
     ) -> Tuple[int, int]:
-        """
-        Import OFX/QFX into Statement + StatementLine.
-        Returns (statement_id, inserted_count).
-        """
-        # Read the OFX/QFX file as text (ignore encoding errors)
-        text = Path(ofx_path).read_text(encoding="utf-8", errors="ignore")
-        # Parse all transaction blocks from the OFX text
-        txns = list(_iter_stmttrn(text))
+    """
+    Import OFX/QFX into Statement + StatementLine.
+    Returns (statement_id, inserted_count).
+    """
+    # Read the OFX/QFX file as text (ignore encoding errors)
+    text = Path(ofx_path).read_text(encoding="utf-8", errors="ignore")
+    # Parse all transaction blocks from the OFX text
+    txns = list(_iter_stmttrn(text))
 
-        # -------------------------
-        # Determine statement period
-        # -------------------------
-        # If period_start and period_end are not both provided, try to extract from OFX tags
-        if not (period_start and period_end):
-            ps, pe = _period_from_ofx(text)
-            period_start = period_start or ps
-            period_end = period_end or pe
-        # If still missing, infer from transaction dates (fallback)
-        if not (period_start and period_end):
-            if txns:
-                dates = [t["posted_date"] for t in txns]
-                period_start, period_end = min(dates), max(dates)
-            else:
-                # No transactions and no period info: cannot proceed
-                raise ValueError("Statement period is required (DTSTART/DTEND or explicit args).")
+    # Determine the statement period
+    period_start, period_end = _determine_statement_period(txns, text, period_start, period_end)
 
-        # -------------------------
-        # Determine balances
-        # -------------------------
-        # If closing balance not provided, try to extract from OFX
-        if closing_bal is None:
-            closing_bal = _closing_from_ofx(text)
+    # Determine opening and closing balances
+    opening_bal, closing_bal = _determine_balances(txns, text, period_start, period_end, opening_bal, closing_bal, infer_opening)
 
-        # If opening balance is not provided, but infer_opening is set, calculate it
-        if opening_bal is None and infer_opening:
-            if closing_bal is None:
-                # Cannot infer opening without a closing balance
-                raise ValueError("Cannot infer opening balance without a closing balance.")
-            # Sum all transaction amounts within the statement period
-            period_sum = sum(
-                (t["amount"] for t in txns if period_start <= t["posted_date"] <= period_end),
-                Decimal("0"),
-            )
-            # Opening = closing - sum(period txns)
-            opening_bal = closing_bal - period_sum
-
-        # Both balances must be present at this point
-        if opening_bal is None or closing_bal is None:
-            raise ValueError(
-                "opening_bal and closing_bal are required (or set infer_opening=True with a closing balance)."
-            )
-
-        # -------------------------
-        # Get or create the Statement record (idempotent)
-        # -------------------------
-        stmt = _get_or_create_statement(
-            db=db,
-            account_id=account_id,
-            period_start=period_start,
-            period_end=period_end,
-            opening_bal=opening_bal,
-            closing_bal=closing_bal,
+    # Get or create the Statement record (idempotent)
+    stmt = _get_or_create_statement(
+        db=db,
+        account_id=account_id,
+        period_start=period_start,
+        period_end=period_end,
+        opening_bal=opening_bal,
+        closing_bal=closing_bal,
         )
 
-        # -------------------------
-        # Prepare deduplication sets for this statement
-        # -------------------------
-        # Set of FITIDs already present in DB for this statement (for fast dedupe)
-        existing_fitids: Set[str] = {
-            fid for (fid,) in db.execute(
-                select(StatementLine.fitid).where(
-                    StatementLine.statement_id == stmt.id,
-                    StatementLine.fitid.is_not(None),
-                )
-            )
-            if fid is not None
-        }
-        # Set of (date, amount, description) triples already present (for fallback dedupe)
-        existing_triples: Set[tuple[date, Decimal, str]] = {
-            (pd, amt, desc) for (pd, amt, desc) in db.execute(
-                select(
-                    StatementLine.posted_date,
-                    StatementLine.amount,
-                    StatementLine.description,
-                ).where(StatementLine.statement_id == stmt.id)
-            )
-        }
+    # Prepare deduplication sets for this statement
+    existing_fitids, existing_triples = _prepare_deduplication_sets(db, stmt)
 
-        # Track how many new StatementLines are inserted
-        inserted = 0
-        # Track FITIDs and triples seen in this import batch (to avoid in-batch dupes)
-        seen_fitids: Set[str] = set()
-        seen_no_fitid: Set[tuple[date, Decimal, str]] = set()
+    # Insert new StatementLines, avoiding duplicates
+    inserted = _import_statement_lines(db, stmt, txns, period_start, period_end, existing_fitids, existing_triples)
 
-        # Log all parsed transactions for debugging
-        logger.debug(
-            "txns parsed: {}",
-            [(t["fitid"], t["posted_date"], t["amount"], t["description"]) for t in txns],
-        )
-
-        # -------------------------
-        # Main import loop: insert new StatementLines
-        # -------------------------
-        for trn in txns:
-            # Only import transactions within the statement period
-            if not (period_start <= trn["posted_date"] <= period_end):
-                continue
-
-            fitid = trn["fitid"]
-            triple = (trn["posted_date"], trn["amount"], trn["description"])
-
-            # In-batch deduplication: skip if already seen in this batch
-            if fitid:
-                if fitid in seen_fitids:
-                    continue
-                seen_fitids.add(fitid)
-            else:
-                if triple in seen_no_fitid:
-                    continue
-                seen_no_fitid.add(triple)
-
-            # DB snapshot deduplication (for this statement):
-            if fitid:
-                # Primary dedupe: skip if FITID already in DB
-                if fitid in existing_fitids:
-                    continue
-                # Fallback: skip if triple already in DB (handles FITID changes)
-                if triple in existing_triples:
-                    continue
-            else:
-                # If no FITID, dedupe only by triple
-                if triple in existing_triples:
-                    continue
-
-            # Passed all dedupe checks: insert new StatementLine
-            db.add(
-                StatementLine(
-                    statement_id=stmt.id,
-                    posted_date=trn["posted_date"],
-                    amount=trn["amount"],
-                    description=trn["description"],
-                    fitid=fitid,
-                )
-            )
-            inserted += 1
-
-            # Update dedupe sets so subsequent txns in this batch see this one
-            if fitid:
-                existing_fitids.add(fitid)
-            existing_triples.add(triple)
-
-        # Commit all new StatementLines to the database
-        db.commit()
-        # Return the statement ID and the number of new lines inserted
-        return stmt.id, inserted
+    # Commit all new StatementLines to the database
+    db.commit()
+    # Return the statement ID and the number of new lines inserted
+    return stmt.id, inserted
