@@ -1,71 +1,68 @@
+"""create transactions and splits (idempotent)"""
 
-
-# Alembic migration template
-
-"""create transactions and splits (idempotent)
-
-Revision ID: bd510c4dd1c4
-Revises: 20250910_0004
-Create Date: 2025-09-10 16:04:47.261765
-
-"""
 from alembic import op
 import sqlalchemy as sa
 
-# revision identifiers, used by Alembic.
+# Use your actual revision chain here
 revision = "20250910_0005"
 down_revision = "20250910_0004"
 branch_labels = None
 depends_on = None
 
 
-def _table_exists(bind, name: str) -> bool:
-    insp = sa.inspect(bind)
-    return name in insp.get_table_names()
-
-
 def upgrade() -> None:
-    bind = op.get_bind()
-
-    # transactions
-    if not _table_exists(bind, "transactions"):
+    # --- transactions ---
+    if not _table_exists("transactions"):
         op.create_table(
             "transactions",
             sa.Column("id", sa.Integer(), primary_key=True),
-            sa.Column("date", sa.Date(), nullable=False),
-            sa.Column("description", sa.String(length=255), nullable=True),
+            sa.Column("date", sa.Date(), nullable=False, index=True),
+            sa.Column("description", sa.String(255), nullable=False, server_default=""),
+            sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+            sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
         )
 
-    # splits
-    if not _table_exists(bind, "splits"):
+    # --- splits ---
+    if not _table_exists("splits"):
         op.create_table(
             "splits",
             sa.Column("id", sa.Integer(), primary_key=True),
             sa.Column("transaction_id", sa.Integer(), nullable=False, index=True),
             sa.Column("account_id", sa.Integer(), nullable=False, index=True),
             sa.Column("amount", sa.Numeric(18, 2), nullable=False),
-            sa.Column("memo", sa.String(length=255), nullable=True),
-            sa.ForeignKeyConstraint(["transaction_id"], ["transactions.id"], ondelete="CASCADE"),
-            sa.ForeignKeyConstraint(["account_id"], ["accounts.id"], ondelete="RESTRICT"),
+            sa.Column("memo", sa.String(255), nullable=True),
+            sa.ForeignKeyConstraint(
+                ["transaction_id"], ["transactions.id"], name="fk_splits_txn", ondelete="CASCADE"
+            ),
+            sa.ForeignKeyConstraint(
+                ["account_id"], ["accounts.id"], name="fk_splits_acct", ondelete="RESTRICT"
+            ),
         )
 
-    # indices for splits (SQLite won’t auto-create index=True here)
-    insp = sa.inspect(bind)
-    existing_idx = {ix["name"] for ix in insp.get_indexes("splits")} if _table_exists(bind, "splits") else set()
-    if "ix_splits_transaction_id" not in existing_idx:
-        op.create_index("ix_splits_transaction_id", "splits", ["transaction_id"])
-    if "ix_splits_account_id" not in existing_idx:
-        op.create_index("ix_splits_account_id", "splits", ["account_id"])
+    # Useful indexes (SQLite-safe)
+    _create_index_if_not_exists("ix_splits_txn_acct", "splits", ["transaction_id", "account_id"])
+    _create_index_if_not_exists("ix_splits_acct", "splits", ["account_id"])
+    _create_index_if_not_exists("ix_transactions_date", "transactions", ["date"])
 
 
 def downgrade() -> None:
+    # Drop in reverse order (guarded)
+    if _table_exists("splits"):
+        op.drop_table("splits")
+    if _table_exists("transactions"):
+        op.drop_table("transactions")
+
+
+# ---- helpers (SQLite-safe) ----
+def _table_exists(name: str) -> bool:
     bind = op.get_bind()
     insp = sa.inspect(bind)
-    if "ix_splits_transaction_id" in {ix["name"] for ix in insp.get_indexes("splits")}:
-        op.drop_index("ix_splits_transaction_id", table_name="splits")
-    if "ix_splits_account_id" in {ix["name"] for ix in insp.get_indexes("splits")}:
-        op.drop_index("ix_splits_account_id", table_name="splits")
-    if _table_exists(bind, "splits"):
-        op.drop_table("splits")
-    if _table_exists(bind, "transactions"):
-        op.drop_table("transactions")
+    return name in insp.get_table_names()
+
+
+def _create_index_if_not_exists(ix_name: str, table: str, cols: list[str]) -> None:
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    existing = {ix["name"] for ix in insp.get_indexes(table)} if table in insp.get_table_names() else set()
+    if ix_name not in existing:
+        op.create_index(ix_name, table, cols)
