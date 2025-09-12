@@ -13,7 +13,7 @@ def test_void_check_creates_reversal(session_from_url):
     post_transaction(db, tx, [s1, s2])
     db.commit()
 
-    chk = Check(check_no="1001", date=date.today(), payee_id=None, amount=Decimal("250.00"), memo="X", transaction_id=tx.id)
+    chk = Check(check_number="1001", issue_date=date.today(), payee=None, amount=Decimal("250.00"), memo_line="X", transaction_id=tx.id)
     db.add(chk); db.commit()
 
     void_check(db, chk.id, date.today(), "Voiding test", create_reversal=True)

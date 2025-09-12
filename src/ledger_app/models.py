@@ -178,10 +178,11 @@ class Check(Base):
     account_id: Mapped[int] = mapped_column(
         ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
     )
-    check_number: Mapped[Optional[str]] = mapped_column(String(30), index=True)
+    check_number: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     payee: Mapped[Optional[str]] = mapped_column(String(120))
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     issue_date: Mapped[date] = mapped_column(Date, nullable=False)
+    memo_line: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status: Mapped[CheckStatus] = mapped_column(
         SAEnum(CheckStatus), default=CheckStatus.ISSUED, nullable=False
     )
