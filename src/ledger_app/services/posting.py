@@ -1,21 +1,52 @@
+# src/ledger_app/services/posting.py
+from __future__ import annotations
+
+from datetime import date
 from decimal import Decimal
+from typing import Iterable, Mapping, Sequence
+
 from sqlalchemy.orm import Session
-from loguru import logger
+
 from ..models import Transaction, Split
 
-def post_transaction(db: Session, tx: Transaction, splits: list[Split]) -> Transaction:
+
+class UnbalancedTransactionError(ValueError):
+    pass
+
+
+def post_transaction(
+    db: Session,
+    *,
+    txn_date: date,
+    description: str,
+    entries: Sequence[Mapping],
+) -> int:
     """
-    Create a transaction with splits, enforcing double-entry.
-    Amount convention: positive = credit, negative = debit (or the reverse, as long as consistent system-wide).
+    Create a transaction with splits and enforce double-entry balance.
+
+    entries: a list of dicts like:
+      {"account_id": 1, "amount": Decimal("100.00"), "memo": "optional"}
+      amounts can be positive or negative; sum must be zero.
+
+    Returns the transaction id.
     """
-    total = sum(Decimal(s.amount) for s in splits)
+    # Validate balanced
+    total = sum((e["amount"] for e in entries), Decimal("0"))
     if total != Decimal("0"):
-        logger.error(f"Unbalanced transaction attempt: total={total} desc={tx.description}")
-        raise ValueError(f"Unbalanced transaction: total={total}")
-    db.add(tx)
-    for s in splits:
-        s.transaction_id = tx.id
-        db.add(s)
-    db.flush()
-    logger.info(f"Posted transaction id={tx.id} with {len(splits)} splits.")
-    return tx
+        raise UnbalancedTransactionError(f"Splits must sum to zero, got {total}")
+
+    txn = Transaction(date=txn_date, description=description or "")
+    # Attach splits via relationship so transaction_id is set automatically
+    for e in entries:
+        txn.splits.append(
+            Split(
+                account_id=e["account_id"],
+                amount=e["amount"],
+                memo=e.get("memo"),
+            )
+        )
+
+    db.add(txn)
+    db.commit()
+    db.refresh(txn)
+    return txn.id

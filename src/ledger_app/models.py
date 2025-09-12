@@ -1,12 +1,13 @@
 # src/ledger_app/models.py
 from __future__ import annotations
-from datetime import date
+from datetime import date, datetime  # Add datetime here
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
 
 from sqlalchemy import (
-    Date, Enum as SAEnum, ForeignKey, Integer, Numeric, String, UniqueConstraint
+    Date, DateTime,  # Add DateTime here
+    Enum as SAEnum, ForeignKey, Integer, Numeric, String, UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -50,19 +51,27 @@ class Account(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    date: Mapped[date] = mapped_column(Date, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(String(255))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
+    # ✅ Relationship with cascade; adding to txn.splits sets transaction_id automatically
     splits: Mapped[List["Split"]] = relationship(
-        back_populates="transaction", cascade="all, delete-orphan"
+        "Split",
+        back_populates="transaction",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 
 class Split(Base):
     __tablename__ = "splits"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # ✅ Non-nullable FK; will be filled by relationship when you append to txn.splits
     transaction_id: Mapped[int] = mapped_column(
         ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -72,8 +81,8 @@ class Split(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     memo: Mapped[Optional[str]] = mapped_column(String(255))
 
-    transaction: Mapped["Transaction"] = relationship(back_populates="splits")
-    account: Mapped["Account"] = relationship(back_populates="splits")
+    transaction: Mapped["Transaction"] = relationship("Transaction", back_populates="splits")
+    account = relationship("Account")
 
 
 class Statement(Base):
