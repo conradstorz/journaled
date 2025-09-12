@@ -22,10 +22,17 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
-    if not url:
-        raise RuntimeError("No DATABASE_URL set and no sqlalchemy.url in alembic.ini")
-    return url
+    # 1. Prefer explicit environment variable (set in conftest.py per test)
+    env_url = os.getenv("DATABASE_URL")
+    if env_url:
+        return env_url
+
+    # 2. Fallback to alembic.ini
+    ini_url = config.get_main_option("sqlalchemy.url")
+    if ini_url:
+        return ini_url
+
+    raise RuntimeError("No DATABASE_URL set and no sqlalchemy.url in alembic.ini")
 
 
 def run_migrations_offline() -> None:
