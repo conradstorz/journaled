@@ -261,8 +261,8 @@ def import_ofx(
     #     * if FITID present  -> by FITID
     #     * if FITID missing  -> by (date, amount, desc)
     # - DB dedupe:
-    #     * try FITID when present
-    #     * also try (date, amount, desc) (idempotent file re-import)
+    #     * if FITID present  -> by FITID ONLY
+    #     * if FITID missing  -> by (date, amount, desc)
     inserted = 0
     seen_fitids: set[str] = set()
     seen_no_fitid: set[tuple[date, Decimal, str]] = set()
@@ -287,15 +287,15 @@ def import_ofx(
         # --- DB dedupe ---
         dup = None
         if fitid:
+            # IF FITID PRESENT: dedupe by FITID ONLY
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
                     StatementLine.fitid == fitid,
                 )
             ).scalar_one_or_none()
-
-        if dup is None:
-            # Fallback: same statement, same date/amount/desc
+        else:
+            # NO FITID: fall back to (date, amount, desc)
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
@@ -318,7 +318,6 @@ def import_ofx(
             )
         )
         inserted += 1
-
 
     db.commit()
     return stmt.id, inserted
