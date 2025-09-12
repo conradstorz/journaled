@@ -6,14 +6,51 @@ from enum import Enum
 from typing import List, Optional
 
 from sqlalchemy import (
-    Date, DateTime,  # Add DateTime here
-    Enum as SAEnum, ForeignKey, Integer, Numeric, String, UniqueConstraint
+    Date,
+    DateTime,  # Add DateTime here
+    Enum as SAEnum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Boolean,
+    Index,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-
 class Base(DeclarativeBase):
     pass
+
+
+
+# --- NEW: Party model ---
+class Party(Base):
+    __tablename__ = "parties"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+
+    # optional: address fields later
+
+
+# --- In Transaction class: add party_id + relationship ---
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # NEW:
+    party_id: Mapped[int | None] = mapped_column(
+        ForeignKey("parties.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    party: Mapped["Party"] = relationship("Party")
+
+    # ... keep your splits relationship, etc.
 
 
 class AccountType(str, Enum):
@@ -26,6 +63,7 @@ class AccountType(str, Enum):
 
 class Account(Base):
     """Chart-of-accounts entry (supports parent/child hierarchy)."""
+
     __tablename__ = "accounts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -107,9 +145,7 @@ class Statement(Base):
 
 class StatementLine(Base):
     __tablename__ = "statement_lines"
-    __table_args__ = (
-        UniqueConstraint("statement_id", "fitid", name="uq_stmtline_fitid"),
-    )
+    __table_args__ = (UniqueConstraint("statement_id", "fitid", name="uq_stmtline_fitid"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     statement_id: Mapped[int] = mapped_column(
@@ -135,8 +171,12 @@ class TransactionReversal(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    original_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
-    reversing_tx_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
+    original_tx_id: Mapped[int] = mapped_column(
+        ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False
+    )
+    reversing_tx_id: Mapped[int] = mapped_column(
+        ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False
+    )
 
 
 class CheckStatus(str, Enum):
@@ -149,7 +189,9 @@ class Check(Base):
     __tablename__ = "checks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
     check_number: Mapped[Optional[str]] = mapped_column(String(30), index=True)
     payee: Mapped[Optional[str]] = mapped_column(String(120))
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
