@@ -75,12 +75,13 @@ class Transaction(Base):
     description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    # NEW:
     party_id: Mapped[int | None] = mapped_column(
         ForeignKey("parties.id", ondelete="SET NULL"), nullable=True, index=True
     )
     party: Mapped["Party"] = relationship("Party")
-    # ✅ Relationship with cascade; adding to txn.splits sets transaction_id automatically
+    # reference field for external references or reversal tracking
+    reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    # Relationship with cascade; adding to txn.splits sets transaction_id automatically
     splits: Mapped[List["Split"]] = relationship(
         "Split",
         back_populates="transaction",
