@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 # adjust these to match your chain
 revision = "20250910_0006"
-down_revision = "20250910_0004"  # or your current head before this file
+down_revision = "20250910_0005"  # or your current head before this file
 branch_labels = None
 depends_on = None
 
