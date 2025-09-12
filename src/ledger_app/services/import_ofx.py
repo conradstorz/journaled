@@ -18,6 +18,13 @@ from ..models import Statement, StatementLine
 # Small parsing utilities
 # -------------------------
 
+def _normalize_description(s: str) -> str:
+    # collapse any whitespace runs to single spaces, strip ends
+    # keep case? or make it case-insensitive; tests only assert on amounts,
+    # but normalization reduces spurious mismatches
+    return re.sub(r"\s+", " ", (s or "").strip())
+
+
 def _extract_tag(text: str, tag: str) -> Optional[str]:
     """
     Return the text immediately following <TAG> up until the next '<'.
@@ -123,7 +130,8 @@ def _iter_stmttrn(ofx_text: str):
         fitid = _extract_tag(block, "FITID")
         name = _extract_tag(block, "NAME") or ""
         memo = _extract_tag(block, "MEMO") or ""
-        desc = (name + " " + memo).strip() or name or memo
+        desc_raw = (name + " " + memo).strip() or name or memo
+        desc = _normalize_description(desc_raw)[:255]
 
         if not dt or not amt:
             continue
@@ -143,7 +151,7 @@ def _iter_stmttrn(ofx_text: str):
             "posted_date": posted,
             "amount": amount,
             "fitid": (fitid or "").strip() or None,
-            "description": desc[:255],
+            "description": desc,
         }
 
 
@@ -263,8 +271,8 @@ def import_ofx(
     # - In-batch dedupe:
     #     * if FITID present  -> by FITID
     #     * if FITID missing  -> by (date, amount, desc)
-    # - DB dedupe:
-    #     * if FITID present  -> by FITID ONLY
+    # - DB dedupe (same statement):
+    #     * if FITID present  -> first by FITID, then (date, amount, desc) fallback
     #     * if FITID missing  -> by (date, amount, desc)
     inserted = 0
     seen_fitids: set[str] = set()
@@ -287,18 +295,29 @@ def import_ofx(
                 continue
             seen_no_fitid.add(triple)
 
-        # --- DB dedupe ---
+        # --- DB dedupe within the same statement ---
         dup = None
         if fitid:
-            # IF FITID PRESENT: dedupe by FITID ONLY
+            # Primary: by FITID
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
                     StatementLine.fitid == fitid,
                 )
             ).scalar_one_or_none()
+
+            # Fallback: (date, amount, desc)
+            if dup is None:
+                dup = db.execute(
+                    select(StatementLine).where(
+                        StatementLine.statement_id == stmt.id,
+                        StatementLine.posted_date == trn["posted_date"],
+                        StatementLine.amount == trn["amount"],
+                        StatementLine.description == trn["description"],
+                    )
+                ).scalar_one_or_none()
         else:
-            # NO FITID: fall back to (date, amount, desc)
+            # No FITID at all -> rely on the triple
             dup = db.execute(
                 select(StatementLine).where(
                     StatementLine.statement_id == stmt.id,
