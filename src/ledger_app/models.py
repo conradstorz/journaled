@@ -34,25 +34,6 @@ class Party(Base):
     # optional: address fields later
 
 
-# --- In Transaction class: add party_id + relationship ---
-class Transaction(Base):
-    __tablename__ = "transactions"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
-    # NEW:
-    party_id: Mapped[int | None] = mapped_column(
-        ForeignKey("parties.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    party: Mapped["Party"] = relationship("Party")
-
-    # ... keep your splits relationship, etc.
-
-
 class AccountType(str, Enum):
     ASSET = "ASSET"
     LIABILITY = "LIABILITY"
@@ -94,7 +75,11 @@ class Transaction(Base):
     description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
+    # NEW:
+    party_id: Mapped[int | None] = mapped_column(
+        ForeignKey("parties.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    party: Mapped["Party"] = relationship("Party")
     # ✅ Relationship with cascade; adding to txn.splits sets transaction_id automatically
     splits: Mapped[List["Split"]] = relationship(
         "Split",
