@@ -15,6 +15,7 @@ dependencies = [
   "weasyprint",
   "loguru",
   "jinja2",
+  "black>=25.1.0",
 ]
 
 [project.optional-dependencies]
