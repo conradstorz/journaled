@@ -33,13 +33,16 @@ def _safe_decimal(raw: str) -> Optional[Decimal]:
     - strip spaces
     - remove thousands separators
     - handle trailing minus (e.g., '50.00-')
-    - drop currency symbols or stray chars
+    - allow leading +/-
     Returns Decimal or None if not parseable.
     """
-    s = (raw or "").strip().replace(",", "")
+    if not raw:
+        return None
+    s = raw.strip().replace(",", "")
     if s.endswith("-") and len(s) > 1:
         s = "-" + s[:-1]
-    s = re.sub(r"[^0-9.\-+]", "", s)
+    # Only allow digits, decimal point, and sign at the start
+    s = re.sub(r"[^0-9.+-]", "", s)
     try:
         return Decimal(s)
     except (InvalidOperation, ValueError):
@@ -156,7 +159,7 @@ def _get_or_create_statement(
     period_end: date,
     opening_bal: Decimal,
     closing_bal: Decimal,
-) -> Statement:
+    ) -> Statement:
     """
     Re-use existing statement by (account_id, period_start, period_end), or create one.
     """
@@ -208,7 +211,7 @@ def import_ofx(
     opening_bal: Optional[Decimal] = None,
     closing_bal: Optional[Decimal] = None,
     infer_opening: bool = False,
-) -> Tuple[int, int]:
+    ) -> Tuple[int, int]:
     """
     Import OFX/QFX into Statement + StatementLine.
     Returns (statement_id, inserted_count).
