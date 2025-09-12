@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import sys
 import os
@@ -19,21 +18,33 @@ from ledger_app.services.reconcile import ReconcileParams, propose_matches, appl
 from ledger_app.services.import_csv import import_statement_csv
 from ledger_app.services.import_ofx import import_ofx
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'ledger/'
-ALEMBIC_INI = PROJECT_ROOT / "alembic.ini"
+# --- Project root and Alembic config ---
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'ledger/' project root
+ALEMBIC_INI = PROJECT_ROOT / "alembic.ini"          # Path to Alembic configuration file
 
 def alembic_config() -> Config:
+    """
+    Returns an Alembic Config object for migration commands.
+    Alembic will read DATABASE_URL from the environment.
+    """
     cfg = Config(str(ALEMBIC_INI))
-    # Alembic env.py will read DATABASE_URL from env, defaulting to sqlite dev.db
     return cfg
 
+# --- Alembic migration commands ---
+
 def cmd_init_db(args) -> int:
+    """
+    Applies all Alembic migrations to bring the database schema up to date.
+    """
     logger.info("Applying migrations to head…")
     command.upgrade(alembic_config(), "head")
     logger.success("Database is up-to-date.")
     return 0
 
 def cmd_make_migration(args) -> int:
+    """
+    Creates a new Alembic migration revision, autogenerating changes.
+    """
     msg = args.message or "auto"
     logger.info(f"Creating new revision: {msg!r}")
     command.revision(alembic_config(), message=msg, autogenerate=True)
@@ -41,13 +52,21 @@ def cmd_make_migration(args) -> int:
     return 0
 
 def cmd_downgrade(args) -> int:
+    """
+    Downgrades the database schema by a given number of steps.
+    """
     steps = args.steps or "1"
     logger.warning(f"Downgrading by {steps} step(s)…")
     command.downgrade(alembic_config(), f"-{steps}")
     logger.success("Downgrade complete.")
     return 0
 
+# --- Seed chart of accounts ---
+
 def cmd_seed_coa(args) -> int:
+    """
+    Seeds the database with a minimal chart of accounts.
+    """
     db = SessionLocal()
     try:
         seed_chart_of_accounts(db)
@@ -55,7 +74,13 @@ def cmd_seed_coa(args) -> int:
         db.close()
     return 0
 
+# --- Transaction reversal ---
+
 def cmd_reverse_tx(args) -> int:
+    """
+    Creates a reversing entry for a given transaction ID.
+    Optionally takes a date and memo for the reversal.
+    """
     db = SessionLocal()
     try:
         d = _date.fromisoformat(args.date) if args.date else _date.today()
@@ -65,7 +90,12 @@ def cmd_reverse_tx(args) -> int:
         db.close()
     return 0
 
+# --- Void check ---
+
 def cmd_void_check(args) -> int:
+    """
+    Voids a check by ID and optionally creates a reversing transaction.
+    """
     db = SessionLocal()
     try:
         d = _date.fromisoformat(args.date) if args.date else _date.today()
@@ -74,8 +104,13 @@ def cmd_void_check(args) -> int:
         db.close()
     return 0
 
-# --- Reconcile commands ---
+# --- Reconciliation commands ---
+
 def cmd_reconcile_propose(args) -> int:
+    """
+    Proposes matches between statement lines and splits for a given account and period.
+    Prints proposed matches with scores and reasons.
+    """
     db = SessionLocal()
     try:
         params = ReconcileParams(
@@ -93,6 +128,9 @@ def cmd_reconcile_propose(args) -> int:
     return 0
 
 def cmd_reconcile_apply(args) -> int:
+    """
+    Applies a proposed match between a statement line and a split.
+    """
     db = SessionLocal()
     try:
         apply_match(db, args.line_id, args.split_id)
@@ -102,6 +140,9 @@ def cmd_reconcile_apply(args) -> int:
     return 0
 
 def cmd_reconcile_unmatch(args) -> int:
+    """
+    Unmatches a statement line from any split it is currently matched to.
+    """
     db = SessionLocal()
     try:
         unmatch(db, args.line_id)
@@ -111,6 +152,9 @@ def cmd_reconcile_unmatch(args) -> int:
     return 0
 
 def cmd_reconcile_status(args) -> int:
+    """
+    Shows reconciliation status for a statement period, including balances and match counts.
+    """
     db = SessionLocal()
     try:
         params = ReconcileParams(
@@ -129,7 +173,12 @@ def cmd_reconcile_status(args) -> int:
     return 0
 
 # --- CSV import command ---
+
 def cmd_import_csv(args) -> int:
+    """
+    Imports a bank statement from a CSV file into statement_lines.
+    Creates or finds the corresponding Statement.
+    """
     db = SessionLocal()
     try:
         period_start = _date.fromisoformat(args.period_start)
@@ -156,7 +205,12 @@ def cmd_import_csv(args) -> int:
         db.close()
     return 0
 
+# --- OFX/QFX import command ---
+
 def cmd_import_ofx(args) -> int:
+    """
+    Imports a bank statement from an OFX/QFX file into statement_lines.
+    """
     db = SessionLocal()
     try:
         period_start = _date.fromisoformat(args.period_start)
@@ -177,10 +231,17 @@ def cmd_import_ofx(args) -> int:
         db.close()
     return 0
 
+# --- Main CLI entrypoint and argument parsing ---
+
 def main(argv: list[str] | None = None) -> int:
+    """
+    Main entrypoint for the CLI.
+    Sets up argument parsing and dispatches to the appropriate command handler.
+    """
     parser = argparse.ArgumentParser(prog="ledger-dev", description="Ledger dev utilities")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    # Migration commands
     p1 = sub.add_parser("init-db", help="Apply Alembic migrations to head")
     p1.set_defaults(func=cmd_init_db)
 
@@ -192,15 +253,18 @@ def main(argv: list[str] | None = None) -> int:
     p3.add_argument("-n", "--steps", help="Steps to downgrade (default 1)")
     p3.set_defaults(func=cmd_downgrade)
 
+    # Seed chart of accounts
     p4 = sub.add_parser("seed-coa", help="Insert minimal chart of accounts")
     p4.set_defaults(func=cmd_seed_coa)
 
+    # Transaction reversal
     p5 = sub.add_parser("reverse-tx", help="Create reversing entry for a transaction id")
     p5.add_argument("--tx-id", type=int, required=True)
     p5.add_argument("--date", help="ISO date for reversal (default today)")
     p5.add_argument("--memo", help="Optional description")
     p5.set_defaults(func=cmd_reverse_tx)
 
+    # Void check
     p6 = sub.add_parser("void-check", help="Void a check (by id) and optionally create a reversing entry")
     p6.add_argument("--check-id", type=int, required=True)
     p6.add_argument("--date", help="ISO date for reversal (default today)")
@@ -208,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
     p6.add_argument("--no-reversal", action="store_true", help="Do not create a reversing transaction")
     p6.set_defaults(func=cmd_void_check)
 
-    # Reconcile
+    # Reconciliation commands
     p7 = sub.add_parser("reconcile-propose", help="Propose matches for a statement period")
     p7.add_argument("--account-id", type=int, required=True)
     p7.add_argument("--period-start", required=True)
@@ -260,10 +324,12 @@ def main(argv: list[str] | None = None) -> int:
     p12.add_argument("--ofx", required=True, help="Path to OFX/QFX file")
     p12.set_defaults(func=cmd_import_ofx)
 
+    # Parse arguments and dispatch to the selected command
     args = parser.parse_args(argv or sys.argv[1:])
     return args.func(args)
 
 if __name__ == "__main__":
+    # Entrypoint for running as a script
     raise SystemExit(main())
 
 
