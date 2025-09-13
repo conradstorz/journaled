@@ -1,6 +1,7 @@
 # tests/conftest.py
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 import pytest
@@ -100,3 +101,7 @@ def session_from_url() -> "Session":
             engine.dispose()
         except Exception as e:
             logger.exception("Exception during DB session close/engine dispose in session_from_url.")
+
+@pytest.fixture(autouse=True, scope='session')
+def silence_sqlalchemy_logging():
+    logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
