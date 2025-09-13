@@ -95,7 +95,7 @@ class Split(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # ✅ Non-nullable FK; will be filled by relationship when you append to txn.splits
+    # Non-nullable FK; will be filled by relationship when you append to txn.splits
     transaction_id: Mapped[int] = mapped_column(
         ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True
     )
