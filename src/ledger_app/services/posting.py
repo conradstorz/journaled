@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import Iterable, Mapping, Sequence
+from typing import Iterable, Mapping, Sequence, List
 
 from sqlalchemy.orm import Session
 
@@ -14,43 +14,39 @@ class UnbalancedTransactionError(ValueError):
     """Raised when splits do not sum to zero."""
 
 
-def post_transaction(
-    db: Session,
-    *,
-    txn_date: date,
-    description: str,
-    entries: Sequence[Mapping],
-) -> int:
+def post_transaction(db: Session, tx: Transaction, splits: Sequence[Split]) -> int:
     """
-    Create a transaction with splits and enforce double-entry balance.
+    Backward-compatible API expected by tests:
 
-    entries: a list of dicts like:
-      {"account_id": 1, "amount": Decimal("100.00"), "memo": "optional"}
-      amounts can be positive or negative; sum must be zero.
+        post_transaction(db, tx, [Split(...), Split(...)])
 
-    Returns the transaction id.
+    - Validates that the splits sum to zero.
+    - Ensures the Transaction is persisted (id assigned).
+    - Attaches splits to the transaction so transaction_id is NOT NULL.
+    - Commits and returns the transaction id.
     """
-    # Validate balanced
-    total = sum((e["amount"] for e in entries), Decimal("0"))
+    # --- validation ---
+    total = sum((s.amount for s in splits), Decimal("0"))
     if total != Decimal("0"):
         raise UnbalancedTransactionError(f"Splits must sum to zero, got {total}")
 
-    txn = Transaction(date=txn_date, description=description or "")
-    # Attach splits via relationship so transaction_id is set automatically
-    for e in entries:
-        txn.splits.append(
-            Split(
-                account_id=e["account_id"],
-                amount=e["amount"],
-                memo=e.get("memo"),
-            )
-        )
+    # --- ensure transaction has an id ---
+    if getattr(tx, "id", None) is None:
+        db.add(tx)
+        db.flush()  # assign tx.id
 
-    db.add(txn)
+    # --- attach and persist splits ---
+    for s in splits:
+        # If ORM relationship exists, prefer it:
+        if hasattr(s, "transaction"):
+            s.transaction = tx  # sets FK automatically when relationship is defined
+        else:
+            # Fallback in case relationship isn't mapped for some reason
+            s.transaction_id = tx.id
+        db.add(s)
+
     db.commit()
-    db.refresh(txn)
-    return txn.id
-
+    return tx.id
 
 
 # Optional: a convenience API that some code may prefer (kept here for future use).
