@@ -1,0 +1,36 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0
+rootdir: D:\Users\Conrad\Documents\programming\journaled
+configfile: pyproject.toml
+plugins: anyio-4.10.0, cov-7.0.0
+collected 15 items
+
+tests\test_cli_init_db.py F
+
+================================== FAILURES ===================================
+__________________________ test_init_db_creates_file __________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000254B3407600>
+
+    def test_init_db_creates_file(run_cli):
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        db = project_root / "test.db"
+        res = run_cli("init-db", cwd=project_root)
+>       assert_ok(res)
+
+tests\test_cli_init_db.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+proc = None
+
+    def assert_ok(proc, *, msg: str = None):
+>       if proc.returncode != 0:
+           ^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'returncode'
+
+tests\conftest.py:37: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/test_cli_init_db.py::test_init_db_creates_file - AttributeError:...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 1 warning in 3.29s =========================

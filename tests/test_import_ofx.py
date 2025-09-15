@@ -11,12 +11,13 @@ from alembic import command
 from alembic.config import Config
 
 @pytest.fixture(scope="function")
-def test_db_url(tmp_path: Path) -> str:
+def test_db_url() -> str:
     """
-    Create a brand-new file-based SQLite DB for EACH TEST.
-    Also set DATABASE_URL so any code that reads it gets the same DB.
+    Return the canonical DB URL for all tests.
     """
-    db_file = tmp_path / "test.db"
+    from pathlib import Path
+    project_root = Path(__file__).parent.parent
+    db_file = project_root / "test.db"
     url = f"sqlite:///{db_file}"
     os.environ["DATABASE_URL"] = url
     return url

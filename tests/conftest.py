@@ -1,3 +1,5 @@
+
+# Canonical test DB path (project root)
 # tests/conftest.py
 """
 Pytest fixtures for running your CLI from tests, correctly, under `uv run`.
@@ -26,6 +28,23 @@ import logging
 from loguru import logger
 import pytest
 
+PROJECT_ROOT = Path(__file__).parent.parent
+CANONICAL_DB_PATH = PROJECT_ROOT / "test.db"
+CANONICAL_DB_URL = f"sqlite:///{CANONICAL_DB_PATH}"
+
+# Helper to assert subprocess success
+def assert_ok(proc, *, msg: str = None):
+    if proc is None:
+        raise AssertionError("Subprocess result is None. The CLI may have failed to launch or returned no result.")
+    if proc.returncode != 0:
+        details = (
+            (msg + "\n") if msg else ""
+        ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
+        raise AssertionError(details)
+
+def pytest_configure():
+    import os
+    os.environ["DATABASE_URL"] = CANONICAL_DB_URL
 
 def _merge_env(extra: Mapping[str, str] | None = None) -> dict[str, str]:
     """Return a copy of os.environ with optional overrides."""
@@ -46,7 +65,7 @@ def run_cli():
     """
     def _runner(
         *args: str,
-    module: str = "journaled_app.cli",          # change if your entry module differs
+        module: str = "journaled_app.cli",          # change if your entry module differs
         cwd: Path | None = None,
         env: Mapping[str, str] | None = None,
         timeout: float | None = 60,
@@ -54,10 +73,14 @@ def run_cli():
         input_text: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         cmd: list[str] = [sys.executable, "-m", module, *args]
+        merged_env = _merge_env(env)
+        # Ensure PYTHONPATH includes src directory
+        src_path = str(Path(__file__).parent.parent / "src")
+        merged_env["PYTHONPATH"] = src_path + os.pathsep + merged_env.get("PYTHONPATH", "")
         result = subprocess.run(
             cmd,
             cwd=str(cwd) if cwd else None,
-            env=_merge_env(env),
+            env=merged_env,
             input=input_text,
             capture_output=True,
             text=True,
@@ -71,42 +94,7 @@ def run_cli():
                 f"--- STDOUT ---\n{result.stdout}\n"
                 f"--- STDERR ---\n{result.stderr}\n"
             )
-        return result
     return _runner
-
-
-@pytest.fixture
-def cli_bin() -> Path:
-    """
-    Resolve the installed console script (e.g., `journaled`) from PATH.
-
-    Works as long as you run pytest via `uv run -m pytest` so uv injects
-    the env's Scripts/bin dir into PATH.
-    """
-    exe = shutil.which("journaled")  # rename if your script is named differently
-    if not exe:
-        pytest.skip("Console script 'journaled' not found on PATH (run tests via `uv run -m pytest`).")
-    return Path(exe)
-
-
-@pytest.fixture
-def temp_workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """
-    Isolated working directory for tests that touch the filesystem.
-    """
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
-
-
-def assert_ok(proc: subprocess.CompletedProcess[str], *, msg: str | None = None) -> None:
-    """
-    Helper assertion that prints stdout/stderr on failure for easier debugging.
-    """
-    if proc.returncode != 0:
-        details = (
-            (msg + "\n") if msg else ""
-        ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
-        raise AssertionError(details)
 
 
 
@@ -127,46 +115,6 @@ def _migrate(url: str) -> None:
     except Exception as e:
         logger.exception(f"Alembic migration failed for DB URL: {url}")
         raise
-
-@pytest.fixture(scope="function", autouse=True)
-def _isolate_db_per_test(tmp_path: Path):
-    """
-    Autouse: EVERY test gets its own SQLite file DB + fresh Alembic schema.
-    Even tests that don't request a session will still run against a clean DB
-    because DATABASE_URL is set before imports.
-    """
-    logger.info(f"Creating test DB in temporary path: {tmp_path}")
-    db_file = tmp_path / "test.db"
-    logger.debug(f"Test DB file path: {db_file}")
-    url = f"sqlite:///{db_file}"
-    logger.info(f"Test DB URL: {url}")
-    prev = os.environ.get("DATABASE_URL")
-    logger.debug(f"Previous DATABASE_URL: {prev}")
-
-    try:
-        os.environ["DATABASE_URL"] = url
-        logger.info(f"Set DATABASE_URL to: {url}")
-        _migrate(url)
-    except Exception as e:
-        logger.exception("Exception during DB setup and migration in _isolate_db_per_test.")
-        raise
-    try:
-        logger.info("Yielding to test with fresh DB and schema.")
-        yield
-    except Exception as e:
-        logger.exception("Exception during test execution in _isolate_db_per_test.")
-        raise
-    finally:
-        # restore env to avoid leakage into outer shell
-        try:
-            if prev is None:
-                logger.info("Restoring DATABASE_URL to unset (removing from environment).")
-                os.environ.pop("DATABASE_URL", None)
-            else:
-                logger.info(f"Restoring DATABASE_URL to previous value: {prev}")
-                os.environ["DATABASE_URL"] = prev
-        except Exception as e:
-            logger.exception("Exception while restoring DATABASE_URL in _isolate_db_per_test.")
 
 @pytest.fixture(scope="function")
 def session_from_url() -> "Session":
