@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 #    (Do NOT create another Base here.)
 from .models import Base
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./ledger.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./journaled.db")
 engine = create_engine(DATABASE_URL, future=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -19,7 +19,7 @@ from ledger_app.services.import_csv import import_statement_csv
 from ledger_app.services.import_ofx import import_ofx
 
 # --- Project root and Alembic config ---
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'ledger/' project root
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'journaled/' project root
 ALEMBIC_INI = PROJECT_ROOT / "alembic.ini"          # Path to Alembic configuration file
 
 def alembic_config() -> Config:
@@ -238,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     Main entrypoint for the CLI.
     Sets up argument parsing and dispatches to the appropriate command handler.
     """
-    parser = argparse.ArgumentParser(prog="ledger-dev", description="Ledger dev utilities")
+    parser = argparse.ArgumentParser(prog="journaled-dev", description="Journaled dev utilities")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Migration commands

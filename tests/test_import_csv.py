@@ -2,8 +2,8 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from sqlalchemy import select
-from ledger_app.models import Base, Statement, StatementLine
-from ledger_app.services.import_csv import import_statement_csv
+from journaled_app.models import Base, Statement, StatementLine
+from journaled_app.services.import_csv import import_statement_csv
 
 CSV_CONTENT = "date,amount,description,fitid\n2025-01-06,-50.00,OFFICE SUPPLIES,abc123\n2025-01-07,100.00,REFUND,def456\n"
 

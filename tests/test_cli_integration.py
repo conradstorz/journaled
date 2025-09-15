@@ -29,7 +29,7 @@ def test_cli_init_db_creates_schema():
 
         # Run the CLI command as a subprocess
         result = subprocess.run(
-            ['uv', 'run', 'src/ledger_app/cli.py', 'init-db'],
+            ['uv', 'run', 'src/journaled_app/cli.py', 'init-db'],
             env=env,
             capture_output=True,
             text=True

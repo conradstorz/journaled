@@ -1,8 +1,8 @@
 from datetime import date
 from decimal import Decimal
-from ledger_app.models import Transaction, Split, Check, CheckStatus, Account
-from ledger_app.services.posting import post_transaction
-from ledger_app.services.checks import void_check
+from journaled_app.models import Transaction, Split, Check, CheckStatus, Account
+from journaled_app.services.posting import post_transaction
+from journaled_app.services.checks import void_check
 
 def test_void_check_creates_reversal(session_from_url):
     db = session_from_url

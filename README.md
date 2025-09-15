@@ -1,5 +1,5 @@
 
-# Ledger (Lean Double-Entry Bookkeeping)
+# Journaled (Lean Double-Entry Bookkeeping)
 
 A lightweight, auditable QuickBooks replacement focused on proper double-entry accounting, clean imports, reconciliation, check printing, and core financial statements.
 
@@ -13,9 +13,9 @@ A lightweight, auditable QuickBooks replacement focused on proper double-entry a
 
 ## Project Layout
 ```
-ledger/
+journaled/
   pyproject.toml
-  src/ledger_app/
+  src/journaled_app/
     __init__.py
     config.py
     db.py
@@ -32,8 +32,8 @@ More modules (CSV/OFX importers, reconciliation, check printing, API & HTMX UI) 
 > Prereqs: Python 3.12+ and **uv**. No `pip` or manual venv activation needed.
 
 ```bash
-# from the folder containing `ledger/`
-cd ledger
+# from the folder containing `journaled/`
+cd journaled
 
 # Install deps
 uv sync
@@ -46,7 +46,7 @@ uv run pytest -q
 Default `DATABASE_URL` is `sqlite:///./dev.db`. Override for Postgres if desired:
 ```bash
 # Example for Postgres (adjust creds/host/db as needed)
-export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/ledger"
+export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/journaled"
 ```
 ## New capabilities
 - Post a **reversing transaction** that negates an existing transaction’s splits (and links them).
@@ -55,10 +55,10 @@ export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/ledger"
 ### Using the posting service in a REPL
 ```bash
 uv run python -q
->>> from ledger_app.db import SessionLocal, engine, Base
+>>> from journaled_app.db import SessionLocal, engine, Base
 >>> Base.metadata.create_all(engine)  # create tables (dev only; we'll add Alembic soon)
->>> from ledger_app.models import Transaction, Split
->>> from ledger_app.services.posting import post_transaction
+>>> from journaled_app.models import Transaction, Split
+>>> from journaled_app.services.posting import post_transaction
 >>> from datetime import date
 >>> from decimal import Decimal
 
@@ -82,10 +82,10 @@ Badge (add once pushed to GitHub):
 ## CLI
 ```bash
 # Reverse a transaction (by id) with today's date
-uv run ledger-dev reverse-tx --tx-id 123 --date 2025-09-08 --memo "Reversal of error"
+uv run journaled-dev reverse-tx --tx-id 123 --date 2025-09-08 --memo "Reversal of error"
 
 # Void a check (by id); default creates a reversing txn dated today
-uv run ledger-dev void-check --check-id 10 --date 2025-09-08 --memo "Voided check" --no-reversal  # add flag to skip reversal
+uv run journaled-dev void-check --check-id 10 --date 2025-09-08 --memo "Voided check" --no-reversal  # add flag to skip reversal
 ```
 
 > Note: If the original transaction has since been reconciled, consider the period impact of dating the reversal today vs. backdating — follow your accounting policy.
@@ -94,23 +94,23 @@ uv run ledger-dev void-check --check-id 10 --date 2025-09-08 --memo "Voided chec
 
 Propose matches:
 ```bash
-uv run ledger-dev reconcile-propose --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31
+uv run journaled-dev reconcile-propose --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31
 ```
 
 Apply / unmatch:
 ```bash
-uv run ledger-dev reconcile-apply --line-id 10 --split-id 42
-uv run ledger-dev reconcile-unmatch --line-id 10
+uv run journaled-dev reconcile-apply --line-id 10 --split-id 42
+uv run journaled-dev reconcile-unmatch --line-id 10
 ```
 
 Status:
 ```bash
-uv run ledger-dev reconcile-status --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31
+uv run journaled-dev reconcile-status --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31
 ```
 
 Import bank CSV to statement lines (creates statement if needed):
 ```bash
-uv run ledger-dev import-csv --account-id 1       --period-start 2025-01-01 --period-end 2025-01-31       --opening 1000.00 --closing 1050.00       --csv bank.csv
+uv run journaled-dev import-csv --account-id 1       --period-start 2025-01-01 --period-end 2025-01-31       --opening 1000.00 --closing 1050.00       --csv bank.csv
 ```
 
 ## API
@@ -118,7 +118,7 @@ The minimal `/health` API endpoint remains included. You can add endpoints later
 
 ## Import OFX/QFX
 ```bash
-uv run ledger-dev import-ofx       --account-id 1       --period-start 2025-01-01 --period-end 2025-01-31       --opening 1000.00 --closing 1050.00       --ofx bank.ofx
+uv run journaled-dev import-ofx       --account-id 1       --period-start 2025-01-01 --period-end 2025-01-31       --opening 1000.00 --closing 1050.00       --ofx bank.ofx
 ```
 Notes:
 - Dedupes by `FITID` when available, else by `(date, amount, description)`.

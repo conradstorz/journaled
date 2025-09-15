@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ledger
-      POSTGRES_PASSWORD: ledger
-      POSTGRES_DB: ledger
+      POSTGRES_USER: journaled
+      POSTGRES_PASSWORD: journaled
+      POSTGRES_DB: journaled
     ports:
       - "5432:5432"
     volumes:
@@ -16,16 +16,13 @@ services:
       dockerfile: Dockerfile
       args:
         PYTHON_VERSION: "3.12"
-    working_dir: /app/ledger
+    working_dir: /app/journaled
     environment:
-      DATABASE_URL: postgresql+psycopg://ledger:ledger@db:5432/ledger
+      DATABASE_URL: postgresql+psycopg://journaled:journaled@db:5432/journaled
     depends_on:
       - db
     # Run migrations to head, then keep container alive (replace with your server later)
     command: >
-      /bin/sh -lc "
-      ledger-dev init-db &&
-      echo 'DB migrated. You can exec into the container and run CLI commands.' &&
-      tail -f /dev/null"
+      /bin/sh -lc "journaled-dev init-db && echo 'DB migrated. You can exec into the container and run CLI commands.' && tail -f /dev/null"
 volumes:
   pgdata: {}

@@ -1,3 +1,4 @@
+# src/journaled_app/services/checks.py
 from __future__ import annotations
 from datetime import date
 from sqlalchemy.orm import Session

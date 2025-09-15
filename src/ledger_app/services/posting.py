@@ -1,4 +1,4 @@
-# src/ledger_app/services/posting.py
+# src/journaled_app/services/posting.py
 from __future__ import annotations
 
 from datetime import date

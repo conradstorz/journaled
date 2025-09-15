@@ -69,8 +69,8 @@ def _period_from_ofx(ofx_text: str) -> Tuple[Optional[date], Optional[date]]:
 
 
 def _closing_from_ofx(ofx_text: str) -> Optional[Decimal]:
-    # Prefer value inside <LEDGERBAL>…</LEDGERBAL>
-    m = re.search(r"<LEDGERBAL>(.*?)</LEDGERBAL>", ofx_text, re.IGNORECASE | re.DOTALL)
+    # Prefer value inside <JOURNALEDBAL>…</JOURNALEDBAL>
+    m = re.search(r"<JOURNALEDBAL>(.*?)</JOURNALEDBAL>", ofx_text, re.IGNORECASE | re.DOTALL)
     if m:
         bal = _extract_tag(m.group(1), "BALAMT")
         if bal:

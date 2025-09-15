@@ -12,4 +12,4 @@ def test_version_flag(run_cli):
     # Adjust to your flag/option names
     res = run_cli("--version")
     assert res.returncode == 0
-    assert any(k in res.stdout.lower() for k in ["version", "ledger"])
+    assert any(k in res.stdout.lower() for k in ["version", "journaled"])

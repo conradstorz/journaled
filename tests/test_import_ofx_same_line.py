@@ -7,8 +7,8 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from ledger_app.models import Account, AccountType, Statement, StatementLine
-from ledger_app.services.import_ofx import import_ofx
+from journaled_app.models import Account, AccountType, Statement, StatementLine
+from journaled_app.services.import_ofx import import_ofx
 
 # OFX where both <STMTTRN> are on one line / tightly packed tags
 SAME_LINE_OFX = """

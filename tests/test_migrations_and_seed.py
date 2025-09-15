@@ -1,6 +1,6 @@
 from sqlalchemy import select, func
-from ledger_app.models import Account, AccountType
-from ledger_app.seeds import seed_chart_of_accounts
+from journaled_app.models import Account, AccountType
+from journaled_app.seeds import seed_chart_of_accounts
 
 def test_migrations_apply_and_seed_idempotent(session_from_url):
     db = session_from_url

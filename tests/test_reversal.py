@@ -1,9 +1,9 @@
 from datetime import date
 from decimal import Decimal
 from sqlalchemy import select
-from ledger_app.models import Transaction, Split, TransactionReversal
-from ledger_app.services.posting import post_transaction
-from ledger_app.services.reversal import create_reversing_entry
+from journaled_app.models import Transaction, Split, TransactionReversal
+from journaled_app.services.posting import post_transaction
+from journaled_app.services.reversal import create_reversing_entry
 
 def test_create_reversing_entry(session_from_url):
     db = session_from_url

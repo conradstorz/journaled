@@ -1,4 +1,4 @@
-# src/ledger_app/models.py
+# src/journaled_app/models.py
 from __future__ import annotations
 from datetime import date, datetime  # Add datetime here
 from decimal import Decimal

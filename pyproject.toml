@@ -1,6 +1,6 @@
 
 [project]
-name = "ledger"
+name = "journaled"
 version = "0.2.0"
 requires-python = ">=3.12"
 dependencies = [
@@ -31,18 +31,18 @@ dev = [
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ledger_app"]
+packages = ["src/journaled_app"]
 
 [tool.hatch.build.targets.sdist]
 include = ["pyproject.toml", "src/**", "README.md", "LICENSE"]
 
 # If your CLI uses Typer/Click/argparse with a main() function:
 [project.scripts]
-ledger = "ledger_app.cli:main"   # or "ledger_app.cli:app" for Typer
+journaled = "journaled_app.cli:main"   # or "journaled_app.cli:app" for Typer
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-addopts = "-q --cov=ledger_app --cov-report=xml --cov-report=term-missing"
+addopts = "-q --cov=journaled_app --cov-report=xml --cov-report=term-missing"
 
 [tool.black]
 line-length = 100
@@ -68,7 +68,7 @@ mypy_path = "src"
 
 [dependency-groups]
 dev = [
-    "ledger",
+  "journaled",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
 ]
@@ -77,7 +77,7 @@ dev = [
 where = ["src"]
 
 [tool.uv.sources]
-ledger = { workspace = true }
+journaled = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]         # or pdm-backend, setuptools, etc.

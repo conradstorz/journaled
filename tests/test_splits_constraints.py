@@ -5,8 +5,8 @@
 from decimal import Decimal
 import pytest
 from sqlalchemy.exc import IntegrityError
-from ledger_app.models import Transaction, Split
-from ledger_app.services.posting import post_transaction
+from journaled_app.models import Transaction, Split
+from journaled_app.services.posting import post_transaction
 from datetime import date
 
 

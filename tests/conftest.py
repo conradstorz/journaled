@@ -2,10 +2,10 @@
 """
 Pytest fixtures for running your CLI from tests, correctly, under `uv run`.
 
-- `run_cli()` runs `python -m ledger_app.cli ...` with the SAME interpreter
+- `run_cli()` runs `python -m journaled_app.cli ...` with the SAME interpreter
   pytest is using (the one uv bootstrapped).
 - `cli_bin()` resolves the console-script shim (if you want to test the
-  installed entry point named `ledger`).
+    installed entry point named `journaled`).
 - `temp_workdir` gives an isolated CWD.
 """
 
@@ -46,7 +46,7 @@ def run_cli():
     """
     def _runner(
         *args: str,
-        module: str = "ledger_app.cli",          # change if your entry module differs
+    module: str = "journaled_app.cli",          # change if your entry module differs
         cwd: Path | None = None,
         env: Mapping[str, str] | None = None,
         timeout: float | None = 60,
@@ -78,14 +78,14 @@ def run_cli():
 @pytest.fixture
 def cli_bin() -> Path:
     """
-    Resolve the installed console script (e.g., `ledger`) from PATH.
+    Resolve the installed console script (e.g., `journaled`) from PATH.
 
     Works as long as you run pytest via `uv run -m pytest` so uv injects
     the env's Scripts/bin dir into PATH.
     """
-    exe = shutil.which("ledger")  # rename if your script is named differently
+    exe = shutil.which("journaled")  # rename if your script is named differently
     if not exe:
-        pytest.skip("Console script 'ledger' not found on PATH (run tests via `uv run -m pytest`).")
+    pytest.skip("Console script 'journaled' not found on PATH (run tests via `uv run -m pytest`).")
     return Path(exe)
 
 

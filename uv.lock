@@ -485,7 +485,7 @@ wheels = [
 ]
 
 [[package]]
-name = "ledger"
+name = "journaled"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
@@ -516,7 +516,7 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "ledger" },
+    { name = "journaled" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -546,7 +546,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "ledger", editable = "." },
+    { name = "journaled", editable = "." },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
 ]

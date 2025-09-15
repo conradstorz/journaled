@@ -4,20 +4,20 @@ from sqlalchemy.exc import SQLAlchemyError
 from ledger_app.db import SessionLocal
 from ledger_app.api.routes_accounts import router as accounts_router
 
-app = FastAPI(title="Ledger API", version="0.2.0")
+app = FastAPI(title="Journaled API", version="0.2.0")
 
 @app.get("/", response_class=HTMLResponse, tags=["system"])
 def landing_page():
     """
-    Landing page for the Ledger API.
+    Landing page for the Journaled API.
     """
     return """
     <html>
         <head>
-            <title>Ledger API</title>
+            <title>Journaled API</title>
         </head>
         <body>
-            <h1>Welcome to the Ledger API</h1>
+            <h1>Welcome to the Journaled API</h1>
             <p>See <a href="/docs">/docs</a> for interactive API documentation.</p>
             <p>Health check: <a href="/health">/health</a></p>
         </body>

@@ -1,9 +1,9 @@
 from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from ledger_app.db import Base
-from ledger_app.models import Transaction, Split
-from ledger_app.services.posting import post_transaction
+from journaled_app.db import Base
+from journaled_app.models import Transaction, Split
+from journaled_app.services.posting import post_transaction
 from datetime import date
 
 def make_db():
