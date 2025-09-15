@@ -85,7 +85,7 @@ def cli_bin() -> Path:
     """
     exe = shutil.which("journaled")  # rename if your script is named differently
     if not exe:
-    pytest.skip("Console script 'journaled' not found on PATH (run tests via `uv run -m pytest`).")
+        pytest.skip("Console script 'journaled' not found on PATH (run tests via `uv run -m pytest`).")
     return Path(exe)
 
 
