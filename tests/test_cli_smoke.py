@@ -9,7 +9,7 @@ def test_help_shows_usage(run_cli):
 
 
 def test_version_flag(run_cli):
-    # Adjust to your flag/option names
+    # Top-level --version flag should be passed directly
     res = run_cli("--version")
     assert res.returncode == 0
     assert any(k in res.stdout.lower() for k in ["version", "journaled"])

@@ -39,6 +39,13 @@ def test_import_ofx_same_line_tags(tmp_path: Path, session_from_url):
     p = tmp_path / "same_line.ofx"
     p.write_text(SAME_LINE_OFX, encoding="utf-8")
 
+    # Debug: print number of STMTTRN blocks and transactions detected
+    from journaled_app.services.import_ofx import _iter_stmttrn_blocks, _iter_stmttrn
+    blocks = list(_iter_stmttrn_blocks(SAME_LINE_OFX))
+    print(f"DEBUG: STMTTRN blocks detected: {len(blocks)}")
+    txns = list(_iter_stmttrn(SAME_LINE_OFX))
+    print(f"DEBUG: Transactions parsed: {len(txns)}")
+
     # first import (infer opening from closing - sum(period))
     stmt_id, count = import_ofx(
         db=db,

@@ -77,6 +77,7 @@ def run_cli():
         # Ensure PYTHONPATH includes src directory
         src_path = str(Path(__file__).parent.parent / "src")
         merged_env["PYTHONPATH"] = src_path + os.pathsep + merged_env.get("PYTHONPATH", "")
+        print(f"Running CLI command: {cmd}\nCWD: {cwd}\nENV: {merged_env}")
         result = subprocess.run(
             cmd,
             cwd=str(cwd) if cwd else None,
@@ -87,6 +88,7 @@ def run_cli():
             timeout=timeout,
             check=False,  # we raise manually so we can include stdout on failure
         )
+        print(f"Subprocess result: {result}")
         if check and result.returncode != 0:
             raise AssertionError(
                 f"CLI exited with {result.returncode}\n"
@@ -94,6 +96,7 @@ def run_cli():
                 f"--- STDOUT ---\n{result.stdout}\n"
                 f"--- STDERR ---\n{result.stderr}\n"
             )
+        return result
     return _runner
 
 
@@ -121,31 +124,32 @@ def session_from_url() -> "Session":
     """
     Handy session fixture for tests that want a DB session.
     """
-    try:
-        url = os.environ["DATABASE_URL"]
-        logger.info(f"Creating SQLAlchemy engine for URL: {url}")
-        engine = create_engine(url, future=True)
-        logger.debug(f"Engine created: {engine}")
-        SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-        logger.debug(f"SessionLocal factory created: {SessionLocal}")
-        db = SessionLocal()
-        logger.info(f"Session created: {db}")
-    except Exception as e:
-        logger.exception("Exception during session/engine creation in session_from_url.")
-        raise
+    import tempfile
+    import uuid
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    # Create a unique DB file per test
+    db_path = tempfile.gettempdir() + f"/test_{uuid.uuid4().hex}.db"
+    url = f"sqlite:///{db_path}"
+    os.environ["DATABASE_URL"] = url
+    logger.info(f"Creating per-test SQLAlchemy engine for URL: {url}")
+    engine = create_engine(url, future=True)
+    # Run Alembic migrations to create tables
+    from alembic.config import Config
+    from alembic import command
+    alembic_cfg = Config(str(PROJECT_ROOT / "alembic.ini"))
+    alembic_cfg.set_main_option("sqlalchemy.url", url)
+    command.upgrade(alembic_cfg, "head")
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    db = SessionLocal()
+    logger.info(f"Session created: {db}")
     try:
         logger.info("Yielding DB session to test.")
         yield db
-    except Exception as e:
-        logger.exception("Exception during test execution in session_from_url.")
-        raise
     finally:
-        try:
-            logger.info("Closing DB session and disposing engine.")
-            db.close()
-            engine.dispose()
-        except Exception as e:
-            logger.exception("Exception during DB session close/engine dispose in session_from_url.")
+        logger.info("Closing DB session and disposing engine.")
+        db.close()
+        engine.dispose()
 
 @pytest.fixture(autouse=True, scope='session')
 def silence_sqlalchemy_logging():

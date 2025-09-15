@@ -5,32 +5,36 @@ configfile: pyproject.toml
 plugins: anyio-4.10.0, cov-7.0.0
 collected 15 items
 
-tests\test_cli_init_db.py F
+tests\test_cli_init_db.py ..                                             [ 13%]
+tests\test_cli_integration.py .                                          [ 20%]
+tests\test_cli_smoke.py ..                                               [ 33%]
+tests\test_import_csv.py .                                               [ 40%]
+tests\test_import_ofx_same_line.py .                                     [ 46%]
+tests\test_migrations_and_seed.py ..                                     [ 60%]
+tests\test_posting.py ..                                                 [ 73%]
+tests\test_reversal.py .                                                 [ 80%]
+tests\test_splits_constraints.py ..                                      [ 93%]
+tests\test_void_check.py .                                               [100%]
 
-================================== FAILURES ===================================
-__________________________ test_init_db_creates_file __________________________
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.7-final-0 _______________
 
-run_cli = <function run_cli.<locals>._runner at 0x00000254B3407600>
-
-    def test_init_db_creates_file(run_cli):
-        from pathlib import Path
-        project_root = Path(__file__).parent.parent
-        db = project_root / "test.db"
-        res = run_cli("init-db", cwd=project_root)
->       assert_ok(res)
-
-tests\test_cli_init_db.py:12: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-
-proc = None
-
-    def assert_ok(proc, *, msg: str = None):
->       if proc.returncode != 0:
-           ^^^^^^^^^^^^^^^
-E       AttributeError: 'NoneType' object has no attribute 'returncode'
-
-tests\conftest.py:37: AttributeError
-=========================== short test summary info ===========================
-FAILED tests/test_cli_init_db.py::test_init_db_creates_file - AttributeError:...
-!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
-======================== 1 failed, 1 warning in 3.29s =========================
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+src\journaled_app\__init__.py                  0      0   100%
+src\journaled_app\api.py                      21     21     0%   1-45
+src\journaled_app\cli.py                     186    186     0%   1-334
+src\journaled_app\config.py                    0      0   100%
+src\journaled_app\db.py                       23      9    61%   27-35, 42-43
+src\journaled_app\models.py                   93      0   100%
+src\journaled_app\schemas.py                  15     15     0%   1-19
+src\journaled_app\seeds.py                    25      2    92%   28-29
+src\journaled_app\services\checks.py          20      3    85%   12, 14-15
+src\journaled_app\services\import_csv.py      56     11    80%   32, 34, 66, 78-81, 97-107
+src\journaled_app\services\import_ofx.py     170     38    78%   47, 50, 54-55, 75-79, 86, 114-115, 133, 137-138, 142-144, 181-182, 184-185, 187-188, 222-227, 242, 253, 304, 312, 315-317, 326-330
+src\journaled_app\services\posting.py         32     11    66%   45, 75-94
+src\journaled_app\services\reversal.py        30      4    87%   19-20, 24, 28
+------------------------------------------------------------------------
+TOTAL                                        671    300    55%
+Coverage XML written to file coverage.xml
+======================= 15 passed, 13 warnings in 6.59s =======================

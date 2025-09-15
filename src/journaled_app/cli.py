@@ -239,6 +239,7 @@ def main(argv: list[str] | None = None) -> int:
     Sets up argument parsing and dispatches to the appropriate command handler.
     """
     parser = argparse.ArgumentParser(prog="journaled-dev", description="Journaled dev utilities")
+    parser.add_argument('--version', action='version', version='journaled-dev 1.0.0')
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # Migration commands
