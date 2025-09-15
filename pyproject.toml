@@ -60,6 +60,13 @@ mypy_path = "src"
 
 [dependency-groups]
 dev = [
+    "ledger",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+ledger = { workspace = true }

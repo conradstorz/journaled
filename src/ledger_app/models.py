@@ -90,8 +90,12 @@ class Transaction(Base):
     )
 
 
+
 class Split(Base):
     __tablename__ = "splits"
+    __table_args__ = (
+        UniqueConstraint("transaction_id", "account_id", name="uq_split_transaction_account"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 

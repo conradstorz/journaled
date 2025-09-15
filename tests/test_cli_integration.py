@@ -29,7 +29,7 @@ def test_cli_init_db_creates_schema():
 
         # Run the CLI command as a subprocess
         result = subprocess.run(
-            ['python', '-m', 'src.ledger_app.cli', 'init-db'],
+            ['uv', 'run', 'src/ledger_app/cli.py', 'init-db'],
             env=env,
             capture_output=True,
             text=True
@@ -38,7 +38,7 @@ def test_cli_init_db_creates_schema():
         logger.debug(f"CLI stdout: {result.stdout}")
         logger.debug(f"CLI stderr: {result.stderr}")
         # This will fail if the CLI or migration is not working
-        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert result.returncode == 0, f"CLI failed:\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
         # Connect to the DB and check that at least one Alembic or app table exists
         engine = create_engine(db_url)
         inspector = inspect(engine)

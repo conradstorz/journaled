@@ -15,7 +15,7 @@ def void_check(db: Session, check_id: int, reversal_date: date, memo: str | None
     chk.status = CheckStatus.VOID
     db.add(chk)
     db.flush()
-    if create_reversal and chk.transaction_id:
-        create_reversing_entry(db, chk.transaction_id, reversal_date, memo or f"Void check {chk.check_no}")
+    if create_reversal:
+        create_reversing_entry(db, check_id, reversal_date, memo or f"Void check {chk.check_number}")
     db.commit()
     logger.success(f"Voided check {check_id}")
