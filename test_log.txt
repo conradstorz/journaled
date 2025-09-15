@@ -1,0 +1,256 @@
+FFFFF..........                                                          [100%]
+================================== FAILURES ===================================
+__________________________ test_init_db_creates_file __________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000273CE96C180>
+temp_workdir = WindowsPath('C:/Users/estor/AppData/Local/Temp/pytest-of-estor/pytest-17/test_init_db_creates_file0')
+
+    def test_init_db_creates_file(run_cli, temp_workdir: Path):
+        db = Path("test.db")
+        res = run_cli("init-db", "--path", str(db))
+>       assert_ok(res)
+
+D:\Conrad\Documents\Programming\ledger\tests\test_cli_init_db.py:8: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+proc = CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\ledger\\.venv\\Scripts\\python.exe', '-m', 'ledger_app.cli...opose_matches, apply_match, unmatch, status\nModuleNotFoundError: No module named \'ledger_app.services.reconcile\'\n')
+
+    def assert_ok(proc: subprocess.CompletedProcess[str], *, msg: str | None = None) -> None:
+        """
+        Helper assertion that prints stdout/stderr on failure for easier debugging.
+        """
+        if proc.returncode != 0:
+            details = (
+                (msg + "\n") if msg else ""
+            ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
+>           raise AssertionError(details)
+E           AssertionError: Exit code: 1
+E           --- STDOUT ---
+E           
+E           --- STDERR ---
+E           Traceback (most recent call last):
+E             File "<frozen runpy>", line 198, in _run_module_as_main
+E             File "<frozen runpy>", line 88, in _run_code
+E             File "D:\Conrad\Documents\Programming\ledger\src\ledger_app\cli.py", line 17, in <module>
+E               from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+E           ModuleNotFoundError: No module named 'ledger_app.services.reconcile'
+
+D:\Conrad\Documents\Programming\ledger\tests\conftest.py:109: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+2025-09-15 13:31:50.055 | INFO     | conftest:_isolate_db_per_test:138 - Creating test DB in temporary path: C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_init_db_creates_file0
+2025-09-15 13:31:50.055 | INFO     | conftest:_isolate_db_per_test:142 - Test DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_init_db_creates_file0\test.db
+2025-09-15 13:31:50.055 | INFO     | conftest:_isolate_db_per_test:148 - Set DATABASE_URL to: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_init_db_creates_file0\test.db
+2025-09-15 13:31:50.055 | INFO     | conftest:_migrate:114 - Starting Alembic migration for DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_init_db_creates_file0\test.db
+2025-09-15 13:31:50.055 | INFO     | conftest:_migrate:124 - Running Alembic upgrade to head...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 20e65af87a9f, initial
+2025-09-15 13:31:50.272 | INFO     | conftest:_migrate:126 - Alembic migration complete.
+2025-09-15 13:31:50.272 | INFO     | conftest:_isolate_db_per_test:154 - Yielding to test with fresh DB and schema.
+-------------------------- Captured stderr teardown ---------------------------
+2025-09-15 13:31:50.999 | INFO     | conftest:_isolate_db_per_test:163 - Restoring DATABASE_URL to unset (removing from environment).
+__________________________ test_console_script_help ___________________________
+
+cli_bin = WindowsPath('D:/Conrad/Documents/Programming/ledger/.venv/Scripts/ledger.EXE')
+
+    def test_console_script_help(cli_bin):
+        # Optional: verify the installed entry point shim works too
+        import subprocess
+        res = subprocess.run([str(cli_bin), "--help"], capture_output=True, text=True)
+>       assert res.returncode == 0, res.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "<frozen runpy>", line 198, in _run_module_as_main
+E           File "<frozen runpy>", line 88, in _run_code
+E           File "D:\Conrad\Documents\Programming\ledger\.venv\Scripts\ledger.EXE\__main__.py", line 4, in <module>
+E           File "D:\Conrad\Documents\Programming\ledger\src\ledger_app\cli.py", line 17, in <module>
+E             from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+E         ModuleNotFoundError: No module named 'ledger_app.services.reconcile'
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\ledger\\.venv\\Scripts\\ledger.EXE', '--help'], returncode...opose_matches, apply_match, unmatch, status\nModuleNotFoundError: No module named \'ledger_app.services.reconcile\'\n').returncode
+
+tests\test_cli_init_db.py:16: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+2025-09-15 13:31:51.014 | INFO     | conftest:_isolate_db_per_test:138 - Creating test DB in temporary path: C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_console_script_help0
+2025-09-15 13:31:51.014 | INFO     | conftest:_isolate_db_per_test:142 - Test DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_console_script_help0\test.db
+2025-09-15 13:31:51.014 | INFO     | conftest:_isolate_db_per_test:148 - Set DATABASE_URL to: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_console_script_help0\test.db
+2025-09-15 13:31:51.014 | INFO     | conftest:_migrate:114 - Starting Alembic migration for DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_console_script_help0\test.db
+2025-09-15 13:31:51.014 | INFO     | conftest:_migrate:124 - Running Alembic upgrade to head...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 20e65af87a9f, initial
+2025-09-15 13:31:51.230 | INFO     | conftest:_migrate:126 - Alembic migration complete.
+2025-09-15 13:31:51.230 | INFO     | conftest:_isolate_db_per_test:154 - Yielding to test with fresh DB and schema.
+-------------------------- Captured stderr teardown ---------------------------
+2025-09-15 13:31:52.010 | INFO     | conftest:_isolate_db_per_test:163 - Restoring DATABASE_URL to unset (removing from environment).
+_______________________ test_cli_init_db_creates_schema _______________________
+
+    @pytest.mark.integration
+    def test_cli_init_db_creates_schema():
+        """
+        Test that the CLI 'init-db' command applies migrations and creates tables in a fresh test database.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = os.path.join(tmpdir, 'test.db')
+            db_url = f'sqlite:///{db_path}'
+            env = os.environ.copy()
+            env['DATABASE_URL'] = db_url
+    
+            logger.info(f"Testing CLI init-db with DATABASE_URL={db_url}")
+            logger.debug(f"Temporary DB path: {db_path}")
+            logger.debug(f"Environment: {env}")
+    
+            # Run the CLI command as a subprocess
+            result = subprocess.run(
+                ['uv', 'run', 'src/ledger_app/cli.py', 'init-db'],
+                env=env,
+                capture_output=True,
+                text=True
+            )
+            logger.info(f"CLI return code: {result.returncode}")
+            logger.debug(f"CLI stdout: {result.stdout}")
+            logger.debug(f"CLI stderr: {result.stderr}")
+            # This will fail if the CLI or migration is not working
+>           assert result.returncode == 0, f"CLI failed:\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+E           AssertionError: CLI failed:
+E             stdout:
+E             
+E             stderr:
+E             Traceback (most recent call last):
+E               File "D:\Conrad\Documents\Programming\ledger\src\ledger_app\cli.py", line 17, in <module>
+E                 from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+E             ModuleNotFoundError: No module named 'ledger_app.services.reconcile'
+E             
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args=['uv', 'run', 'src/ledger_app/cli.py', 'init-db'], returncode=1, stdout='', stderr='Traceback (m...opose_matches, apply_match, unmatch, status\nModuleNotFoundError: No module named \'ledger_app.services.reconcile\'\n').returncode
+
+tests\test_cli_integration.py:41: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+2025-09-15 13:31:52.016 | INFO     | conftest:_isolate_db_per_test:138 - Creating test DB in temporary path: C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_cli_init_db_creates_schem0
+2025-09-15 13:31:52.016 | INFO     | conftest:_isolate_db_per_test:142 - Test DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_cli_init_db_creates_schem0\test.db
+2025-09-15 13:31:52.016 | INFO     | conftest:_isolate_db_per_test:148 - Set DATABASE_URL to: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_cli_init_db_creates_schem0\test.db
+2025-09-15 13:31:52.016 | INFO     | conftest:_migrate:114 - Starting Alembic migration for DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_cli_init_db_creates_schem0\test.db
+2025-09-15 13:31:52.016 | INFO     | conftest:_migrate:124 - Running Alembic upgrade to head...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 20e65af87a9f, initial
+2025-09-15 13:31:52.251 | INFO     | conftest:_migrate:126 - Alembic migration complete.
+2025-09-15 13:31:52.252 | INFO     | conftest:_isolate_db_per_test:154 - Yielding to test with fresh DB and schema.
+---------------------------- Captured stderr call -----------------------------
+2025-09-15 13:31:52.254 | INFO     | test_cli_integration:test_cli_init_db_creates_schema:26 - Testing CLI init-db with DATABASE_URL=sqlite:///C:\Users\estor\AppData\Local\Temp\tmpluihewzf\test.db
+2025-09-15 13:31:53.063 | INFO     | test_cli_integration:test_cli_init_db_creates_schema:37 - CLI return code: 1
+-------------------------- Captured stderr teardown ---------------------------
+2025-09-15 13:31:53.069 | INFO     | conftest:_isolate_db_per_test:163 - Restoring DATABASE_URL to unset (removing from environment).
+____________________________ test_help_shows_usage ____________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000273CEA7B740>
+
+    def test_help_shows_usage(run_cli):
+        res = run_cli("--help")
+>       assert_ok(res)
+
+tests\test_cli_smoke.py:7: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+proc = CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\ledger\\.venv\\Scripts\\python.exe', '-m', 'ledger_app.cli...opose_matches, apply_match, unmatch, status\nModuleNotFoundError: No module named \'ledger_app.services.reconcile\'\n')
+
+    def assert_ok(proc: subprocess.CompletedProcess[str], *, msg: str | None = None) -> None:
+        """
+        Helper assertion that prints stdout/stderr on failure for easier debugging.
+        """
+        if proc.returncode != 0:
+            details = (
+                (msg + "\n") if msg else ""
+            ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
+>           raise AssertionError(details)
+E           AssertionError: Exit code: 1
+E           --- STDOUT ---
+E           
+E           --- STDERR ---
+E           Traceback (most recent call last):
+E             File "<frozen runpy>", line 198, in _run_module_as_main
+E             File "<frozen runpy>", line 88, in _run_code
+E             File "D:\Conrad\Documents\Programming\ledger\src\ledger_app\cli.py", line 17, in <module>
+E               from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+E           ModuleNotFoundError: No module named 'ledger_app.services.reconcile'
+
+tests\conftest.py:109: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+2025-09-15 13:31:53.071 | INFO     | conftest:_isolate_db_per_test:138 - Creating test DB in temporary path: C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_help_shows_usage0
+2025-09-15 13:31:53.073 | INFO     | conftest:_isolate_db_per_test:142 - Test DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_help_shows_usage0\test.db
+2025-09-15 13:31:53.073 | INFO     | conftest:_isolate_db_per_test:148 - Set DATABASE_URL to: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_help_shows_usage0\test.db
+2025-09-15 13:31:53.073 | INFO     | conftest:_migrate:114 - Starting Alembic migration for DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_help_shows_usage0\test.db
+2025-09-15 13:31:53.073 | INFO     | conftest:_migrate:124 - Running Alembic upgrade to head...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 20e65af87a9f, initial
+2025-09-15 13:31:53.285 | INFO     | conftest:_migrate:126 - Alembic migration complete.
+2025-09-15 13:31:53.285 | INFO     | conftest:_isolate_db_per_test:154 - Yielding to test with fresh DB and schema.
+-------------------------- Captured stderr teardown ---------------------------
+2025-09-15 13:31:54.047 | INFO     | conftest:_isolate_db_per_test:163 - Restoring DATABASE_URL to unset (removing from environment).
+______________________________ test_version_flag ______________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000273CEA7AAC0>
+
+    def test_version_flag(run_cli):
+        # Adjust to your flag/option names
+        res = run_cli("--version")
+>       assert res.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\ledger\\.venv\\Scripts\\python.exe', '-m', 'ledger_app.cli...opose_matches, apply_match, unmatch, status\nModuleNotFoundError: No module named \'ledger_app.services.reconcile\'\n').returncode
+
+tests\test_cli_smoke.py:14: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+2025-09-15 13:31:54.051 | INFO     | conftest:_isolate_db_per_test:138 - Creating test DB in temporary path: C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_version_flag0
+2025-09-15 13:31:54.051 | INFO     | conftest:_isolate_db_per_test:142 - Test DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_version_flag0\test.db
+2025-09-15 13:31:54.051 | INFO     | conftest:_isolate_db_per_test:148 - Set DATABASE_URL to: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_version_flag0\test.db
+2025-09-15 13:31:54.051 | INFO     | conftest:_migrate:114 - Starting Alembic migration for DB URL: sqlite:///C:\Users\estor\AppData\Local\Temp\pytest-of-estor\pytest-17\test_version_flag0\test.db
+2025-09-15 13:31:54.053 | INFO     | conftest:_migrate:124 - Running Alembic upgrade to head...
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 20e65af87a9f, initial
+2025-09-15 13:31:54.260 | INFO     | conftest:_migrate:126 - Alembic migration complete.
+2025-09-15 13:31:54.260 | INFO     | conftest:_isolate_db_per_test:154 - Yielding to test with fresh DB and schema.
+-------------------------- Captured stderr teardown ---------------------------
+2025-09-15 13:31:54.934 | INFO     | conftest:_isolate_db_per_test:163 - Restoring DATABASE_URL to unset (removing from environment).
+============================== warnings summary ===============================
+tests\test_cli_integration.py:15
+  D:\Conrad\Documents\Programming\ledger\tests\test_cli_integration.py:15: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests/test_posting.py: 2 warnings
+tests/test_reversal.py: 4 warnings
+tests/test_splits_constraints.py: 2 warnings
+tests/test_void_check.py: 4 warnings
+  D:\Conrad\Documents\Programming\ledger\.venv\Lib\site-packages\sqlalchemy\sql\schema.py:3624: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.9-final-0 _______________
+
+Name                                    Stmts   Miss  Cover   Missing
+---------------------------------------------------------------------
+src\ledger_app\__init__.py                  0      0   100%
+src\ledger_app\api.py                      21     21     0%   1-45
+src\ledger_app\cli.py                     185    185     0%   1-333
+src\ledger_app\config.py                    0      0   100%
+src\ledger_app\db.py                       23      9    61%   27-35, 42-43
+src\ledger_app\models.py                   93      0   100%
+src\ledger_app\schemas.py                  15     15     0%   1-19
+src\ledger_app\seeds.py                    25      2    92%   28-29
+src\ledger_app\services\checks.py          20      3    85%   11, 13-14
+src\ledger_app\services\import_csv.py      56     11    80%   31, 33, 65, 77-80, 96-106
+src\ledger_app\services\import_ofx.py     170     38    78%   47, 50, 54-55, 81-86, 114-115, 133, 137-138, 142-144, 181-182, 184-185, 187-188, 222-227, 242, 253, 304, 312, 315-317, 326-330
+src\ledger_app\services\posting.py         32     11    66%   45, 75-94
+src\ledger_app\services\reversal.py        30      4    87%   18-19, 23, 27
+---------------------------------------------------------------------
+TOTAL                                     670    299    55%
+Coverage XML written to file coverage.xml
+=========================== short test summary info ===========================
+FAILED tests/test_cli_init_db.py::test_init_db_creates_file - AssertionError:...
+FAILED tests/test_cli_init_db.py::test_console_script_help - AssertionError: ...
+FAILED tests/test_cli_integration.py::test_cli_init_db_creates_schema - Asser...
+FAILED tests/test_cli_smoke.py::test_help_shows_usage - AssertionError: Exit ...
+FAILED tests/test_cli_smoke.py::test_version_flag - AssertionError: assert 1 ...
+5 failed, 10 passed, 13 warnings in 7.59s

@@ -1,17 +1,114 @@
 # tests/conftest.py
+"""
+Pytest fixtures for running your CLI from tests, correctly, under `uv run`.
+
+- `run_cli()` runs `python -m ledger_app.cli ...` with the SAME interpreter
+  pytest is using (the one uv bootstrapped).
+- `cli_bin()` resolves the console-script shim (if you want to test the
+  installed entry point named `ledger`).
+- `temp_workdir` gives an isolated CWD.
+"""
+
 from __future__ import annotations
 
-import logging
 import os
+import sys
+import shutil
+import subprocess
 from pathlib import Path
-import pytest
+from typing import Iterable, Mapping
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-
 from alembic import command
 from alembic.config import Config
+import logging
 from loguru import logger
+import pytest
+
+
+def _merge_env(extra: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Return a copy of os.environ with optional overrides."""
+    env = os.environ.copy()
+    if extra:
+        env.update(extra)
+    return env
+
+
+@pytest.fixture
+def run_cli():
+    """
+    Run your CLI as a Python module to avoid PATH/console-script issues.
+
+    Example:
+        res = run_cli("init-db", "--path", str(tmp_path/"app.db"))
+        assert res.returncode == 0, res.stderr
+    """
+    def _runner(
+        *args: str,
+        module: str = "ledger_app.cli",          # change if your entry module differs
+        cwd: Path | None = None,
+        env: Mapping[str, str] | None = None,
+        timeout: float | None = 60,
+        check: bool = False,                      # set True to raise on nonzero exit
+        input_text: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        cmd: list[str] = [sys.executable, "-m", module, *args]
+        result = subprocess.run(
+            cmd,
+            cwd=str(cwd) if cwd else None,
+            env=_merge_env(env),
+            input=input_text,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,  # we raise manually so we can include stdout on failure
+        )
+        if check and result.returncode != 0:
+            raise AssertionError(
+                f"CLI exited with {result.returncode}\n"
+                f"CMD: {' '.join(cmd)}\n"
+                f"--- STDOUT ---\n{result.stdout}\n"
+                f"--- STDERR ---\n{result.stderr}\n"
+            )
+        return result
+    return _runner
+
+
+@pytest.fixture
+def cli_bin() -> Path:
+    """
+    Resolve the installed console script (e.g., `ledger`) from PATH.
+
+    Works as long as you run pytest via `uv run -m pytest` so uv injects
+    the env's Scripts/bin dir into PATH.
+    """
+    exe = shutil.which("ledger")  # rename if your script is named differently
+    if not exe:
+        pytest.skip("Console script 'ledger' not found on PATH (run tests via `uv run -m pytest`).")
+    return Path(exe)
+
+
+@pytest.fixture
+def temp_workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """
+    Isolated working directory for tests that touch the filesystem.
+    """
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def assert_ok(proc: subprocess.CompletedProcess[str], *, msg: str | None = None) -> None:
+    """
+    Helper assertion that prints stdout/stderr on failure for easier debugging.
+    """
+    if proc.returncode != 0:
+        details = (
+            (msg + "\n") if msg else ""
+        ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
+        raise AssertionError(details)
+
+
 
 def _migrate(url: str) -> None:
     logger.info(f"Starting Alembic migration for DB URL: {url}")
