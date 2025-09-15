@@ -3,9 +3,9 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from ledger_app.models import Account, AccountType
-from ledger_app.api.deps import get_db
-from ledger_app.schemas import AccountCreate, AccountRead
+from journaled_app.models import Account, AccountType
+from journaled_app.api.deps import get_db
+from journaled_app.schemas import AccountCreate, AccountRead
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 

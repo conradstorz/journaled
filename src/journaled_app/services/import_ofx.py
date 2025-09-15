@@ -1,4 +1,4 @@
-# src/ledger_app/services/import_ofx.py
+## src/journaled_app/services/import_ofx.py
 from __future__ import annotations
 
 import re

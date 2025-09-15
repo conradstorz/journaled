@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy.exc import SQLAlchemyError
-from ledger_app.db import SessionLocal
-from ledger_app.api.routes_accounts import router as accounts_router
+from journaled_app.db import SessionLocal
+from journaled_app.api.routes_accounts import router as accounts_router
 
 app = FastAPI(title="Journaled API", version="0.2.0")
 

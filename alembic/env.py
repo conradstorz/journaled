@@ -8,7 +8,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 # Import your metadata
-from ledger_app.models import Base
+from journaled_app.models import Base
 
 # Alembic Config object
 config = context.config

@@ -1,4 +1,4 @@
-# src/ledger_app/db.py
+## src/journaled_app/db.py
 from __future__ import annotations
 
 import os

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Generator
 from sqlalchemy.orm import Session
-from ledger_app.db import SessionLocal
+from journaled_app.db import SessionLocal
 
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()

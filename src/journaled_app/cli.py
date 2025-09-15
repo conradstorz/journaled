@@ -10,13 +10,13 @@ from alembic.config import Config
 from pathlib import Path
 import argparse
 
-from ledger_app.db import SessionLocal
-from ledger_app.seeds import seed_chart_of_accounts
-from ledger_app.services.reversal import create_reversing_entry
-from ledger_app.services.checks import void_check
-from ledger_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
-from ledger_app.services.import_csv import import_statement_csv
-from ledger_app.services.import_ofx import import_ofx
+from journaled_app.db import SessionLocal
+from journaled_app.seeds import seed_chart_of_accounts
+from journaled_app.services.reversal import create_reversing_entry
+from journaled_app.services.checks import void_check
+from journaled_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+from journaled_app.services.import_csv import import_statement_csv
+from journaled_app.services.import_ofx import import_ofx
 
 # --- Project root and Alembic config ---
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'journaled/' project root
