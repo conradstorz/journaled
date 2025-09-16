@@ -1,6 +1,6 @@
 # src/journaled_app/models.py
 from __future__ import annotations
-from datetime import date, datetime  # Add datetime here
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
@@ -73,8 +73,8 @@ class Transaction(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     party_id: Mapped[int | None] = mapped_column(
         ForeignKey("parties.id", ondelete="SET NULL"), nullable=True, index=True
     )

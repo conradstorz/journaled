@@ -16,6 +16,7 @@ dependencies = [
   "loguru",
   "jinja2",
   "black>=25.1.0",
+  "httpx>=0.28.1",
 ]
 
 [project.optional-dependencies]

@@ -1,40 +1,27 @@
 ============================= test session starts =============================
-platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0
+platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0 -- D:\Users\Conrad\Documents\programming\journaled\.venv\Scripts\python.exe
+cachedir: .pytest_cache
 rootdir: D:\Users\Conrad\Documents\programming\journaled
-configfile: pyproject.toml
+configfile: pytest.ini
 plugins: anyio-4.10.0, cov-7.0.0
-collected 15 items
+collecting ... collected 17 items
 
-tests\test_cli_init_db.py ..                                             [ 13%]
-tests\test_cli_integration.py .                                          [ 20%]
-tests\test_cli_smoke.py ..                                               [ 33%]
-tests\test_import_csv.py .                                               [ 40%]
-tests\test_import_ofx_same_line.py .                                     [ 46%]
-tests\test_migrations_and_seed.py ..                                     [ 60%]
-tests\test_posting.py ..                                                 [ 73%]
-tests\test_reversal.py .                                                 [ 80%]
-tests\test_splits_constraints.py ..                                      [ 93%]
-tests\test_void_check.py .                                               [100%]
+tests/test_api.py::test_health_endpoint PASSED                           [  5%]
+tests/test_api.py::test_landing_page PASSED                              [ 11%]
+tests/test_cli_init_db.py::test_init_db_creates_file PASSED              [ 17%]
+tests/test_cli_init_db.py::test_console_script_help PASSED               [ 23%]
+tests/test_cli_integration.py::test_cli_init_db_creates_schema PASSED    [ 29%]
+tests/test_cli_smoke.py::test_help_shows_usage PASSED                    [ 35%]
+tests/test_cli_smoke.py::test_version_flag PASSED                        [ 41%]
+tests/test_import_csv.py::test_import_csv_creates_statement_and_lines PASSED [ 47%]
+tests/test_import_ofx_same_line.py::test_import_ofx_same_line_tags PASSED [ 52%]
+tests/test_migrations_and_seed.py::test_migrations_apply_and_seed_idempotent PASSED [ 58%]
+tests/test_migrations_and_seed.py::test_checking_parent_is_cash PASSED   [ 64%]
+tests/test_posting.py::test_must_balance PASSED                          [ 70%]
+tests/test_posting.py::test_unbalanced_raises PASSED                     [ 76%]
+tests/test_reversal.py::test_create_reversing_entry PASSED               [ 82%]
+tests/test_splits_constraints.py::test_unbalanced_raises_in_service PASSED [ 88%]
+tests/test_splits_constraints.py::test_duplicate_split_unique_constraint PASSED [ 94%]
+tests/test_void_check.py::test_void_check_creates_reversal PASSED        [100%]
 
-=============================== tests coverage ================================
-_______________ coverage: platform win32, python 3.12.7-final-0 _______________
-
-Name                                       Stmts   Miss  Cover   Missing
-------------------------------------------------------------------------
-src\journaled_app\__init__.py                  0      0   100%
-src\journaled_app\api.py                      21     21     0%   1-45
-src\journaled_app\cli.py                     186    186     0%   1-334
-src\journaled_app\config.py                    0      0   100%
-src\journaled_app\db.py                       23      9    61%   27-35, 42-43
-src\journaled_app\models.py                   93      0   100%
-src\journaled_app\schemas.py                  15     15     0%   1-19
-src\journaled_app\seeds.py                    25      2    92%   28-29
-src\journaled_app\services\checks.py          20      3    85%   12, 14-15
-src\journaled_app\services\import_csv.py      56     11    80%   32, 34, 66, 78-81, 97-107
-src\journaled_app\services\import_ofx.py     170     38    78%   47, 50, 54-55, 75-79, 86, 114-115, 133, 137-138, 142-144, 181-182, 184-185, 187-188, 222-227, 242, 253, 304, 312, 315-317, 326-330
-src\journaled_app\services\posting.py         32     11    66%   45, 75-94
-src\journaled_app\services\reversal.py        30      4    87%   19-20, 24, 28
-------------------------------------------------------------------------
-TOTAL                                        671    300    55%
-Coverage XML written to file coverage.xml
-======================= 15 passed, 13 warnings in 6.59s =======================
+============================= 17 passed in 6.84s ==============================
