@@ -3,7 +3,6 @@ run_tests.py
 
 A script to run pytest on the CLI integration tests with maximum output suppression for SQLAlchemy and warnings.
 - Sets environment variables to silence SQLAlchemy warnings.
-- Configures pytest to run in quiet mode, suppress warnings, and minimize traceback output.
 - Uses subprocess to invoke pytest as a separate process.
 - Prints a summary of the test result.
 """
@@ -21,10 +20,10 @@ def main():
     # Build the pytest command
     pytest_cmd = [
         'pytest',
-        '-q',                # Quiet mode: minimal output
-        '-p', 'no:warnings', # Suppress all warnings
+        #'-q',                # Quiet mode: minimal output
+        #'-p', 'no:warnings', # Suppress all warnings
         '--tb=line',         # One-line tracebacks for errors/failures
-        '--show-capture=no', # Do not show captured stdout/stderr, even on failure
+        #'--show-capture=no', # Do not show captured stdout/stderr, even on failure
         '--maxfail=1',       # Stop after first failure
     ]
 
@@ -40,10 +39,11 @@ def main():
         )
         # Write a summary of the result
         if result.returncode == 0:
-            f.write("\nAll tests passed! ✅\n")
+            f.write("\nAll tests passed!\n")
         else:
             f.write(f"\nSome tests failed. Exit code: {result.returncode}\n")
             sys.exit(result.returncode)
+    print("Run ended. Pytest output is available in test_run.txt")
 
 if __name__ == "__main__":
     main()

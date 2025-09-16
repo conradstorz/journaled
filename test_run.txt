@@ -1,36 +1,28 @@
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 11937d304c9f, Initial migration
 ============================= test session starts =============================
-platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0 -- D:\Users\Conrad\Documents\programming\journaled\.venv\Scripts\python.exe
-cachedir: .pytest_cache
+platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0
 rootdir: D:\Users\Conrad\Documents\programming\journaled
 configfile: pytest.ini
 plugins: anyio-4.10.0, cov-7.0.0
-collecting ... collected 26 items
+collected 26 items
 
-tests/test_api.py::test_health_endpoint PASSED                           [  3%]
-tests/test_api.py::test_landing_page PASSED                              [  7%]
-tests/test_api.py::test_docs_page PASSED                                 [ 11%]
-tests/test_api.py::test_openapi_json PASSED                              [ 15%]
-tests/test_api.py::test_health_endpoint_structure PASSED                 [ 19%]
-tests/test_api.py::test_accounts_endpoint PASSED                         [ 23%]
-tests/test_api.py::test_create_account PASSED                            [ 26%]
-tests/test_api.py::test_delete_account_with_attached_splits PASSED       [ 30%]
-tests/test_api.py::test_delete_account_with_nonzero_balance PASSED       [ 34%]
-tests/test_api.py::test_delete_nonexistent_account PASSED                [ 38%]
-tests/test_api.py::test_delete_account_with_no_splits_and_zero_balance PASSED [ 42%]
-tests/test_cli_init_db.py::test_init_db_creates_file PASSED              [ 46%]
-tests/test_cli_init_db.py::test_console_script_help PASSED               [ 50%]
-tests/test_cli_integration.py::test_cli_init_db_creates_schema PASSED    [ 53%]
-tests/test_cli_smoke.py::test_help_shows_usage PASSED                    [ 57%]
-tests/test_cli_smoke.py::test_version_flag PASSED                        [ 61%]
-tests/test_import_csv.py::test_import_csv_creates_statement_and_lines PASSED [ 65%]
-tests/test_import_ofx_same_line.py::test_import_ofx_same_line_tags PASSED [ 69%]
-tests/test_migrations_and_seed.py::test_migrations_apply_and_seed_idempotent PASSED [ 73%]
-tests/test_migrations_and_seed.py::test_checking_parent_is_cash PASSED   [ 76%]
-tests/test_posting.py::test_must_balance PASSED                          [ 80%]
-tests/test_posting.py::test_unbalanced_raises PASSED                     [ 84%]
-tests/test_reversal.py::test_create_reversing_entry PASSED               [ 88%]
-tests/test_splits_constraints.py::test_unbalanced_raises_in_service PASSED [ 92%]
-tests/test_splits_constraints.py::test_duplicate_split_unique_constraint PASSED [ 96%]
-tests/test_void_check.py::test_void_check_creates_reversal PASSED        [100%]
+tests\test_api.py ...........                                            [ 42%]
+tests\test_cli_init_db.py ..                                             [ 50%]
+tests\test_cli_integration.py .                                          [ 53%]
+tests\test_cli_smoke.py ..                                               [ 61%]
+tests\test_import_csv.py .                                               [ 65%]
+tests\test_import_ofx_same_line.py .                                     [ 69%]
+tests\test_migrations_and_seed.py ..                                     [ 76%]
+tests\test_posting.py ..                                                 [ 84%]
+tests\test_reversal.py .                                                 [ 88%]
+tests\test_splits_constraints.py ..                                      [ 96%]
+tests\test_void_check.py .                                               [100%]
 
-============================= 26 passed in 7.86s ==============================
+============================= 26 passed in 6.89s ==============================
+Running CLI integration tests with suppressed SQLAlchemy and warning output...
+Command: pytest --tb=line --maxfail=1
+
+
+All tests passed!
