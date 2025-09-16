@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, HTMLResponse
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from journaled_app.db import SessionLocal
 from sqlalchemy import text
 from journaled_app.api.routes_accounts import router as accounts_router
 from journaled_app.api.routes_transactions import router as transactions_router
+from journaled_app.services.posting import UnbalancedTransactionError
 
 app = FastAPI(title="Journaled API", version="0.2.0")
 
@@ -43,6 +44,20 @@ def health() -> JSONResponse:
             if db is not None:
                 db.close()
     return JSONResponse({"status": "ok", "database": db_status})
+
+@app.exception_handler(UnbalancedTransactionError)
+def unbalanced_transaction_exception_handler(request: Request, exc: UnbalancedTransactionError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(IntegrityError)
+def integrity_error_exception_handler(request: Request, exc: IntegrityError):
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Database integrity error: " + str(exc.orig)}
+    )
 
 # Mount routers
 app.include_router(accounts_router)
