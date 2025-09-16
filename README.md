@@ -73,33 +73,11 @@ journaled/
 ## Running Journaled
 
 ### Default Database
-- Uses SQLite by default (`sqlite:///./dev.db`).
-- To use Postgres, set the `DATABASE_URL` environment variable:
   ```bash
   export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/journaled"
   ```
 
 ### CLI Usage
-All commands use the `journaled-dev` CLI. Example:
-```bash
-# Reverse a transaction
-uv run journaled-dev reverse-tx --tx-id 123 --date 2025-09-08 --memo "Reversal of error"
-
-# Void a check
-uv run journaled-dev void-check --check-id 10 --date 2025-09-08 --memo "Voided check" --no-reversal
-
-# Import bank CSV
-uv run journaled-dev import-csv --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31 --opening 1000.00 --closing 1050.00 --csv bank.csv
-
-# Import OFX/QFX
-uv run journaled-dev import-ofx --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31 --opening 1000.00 --closing 1050.00 --ofx bank.ofx
-
-# Reconciliation
-uv run journaled-dev reconcile-propose --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31
-uv run journaled-dev reconcile-apply --line-id 10 --split-id 42
-uv run journaled-dev reconcile-unmatch --line-id 10
-uv run journaled-dev reconcile-status --account-id 1 --period-start 2025-01-01 --period-end 2025-01-31
-```
 
 ---
 

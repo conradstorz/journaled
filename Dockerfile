@@ -52,4 +52,4 @@ ENV PATH="/app/journaled/.venv/bin:${PATH}"
 RUN python -c "import sys; print(sys.version)"
 
 # Default command: show help
-CMD ["journaled-dev"]
+CMD []
