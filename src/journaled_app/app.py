@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from journaled_app.db import SessionLocal
 from sqlalchemy import text
 from journaled_app.api.routes_accounts import router as accounts_router
+from journaled_app.api.routes_transactions import router as transactions_router
 
 app = FastAPI(title="Journaled API", version="0.2.0")
 
@@ -45,3 +46,4 @@ def health() -> JSONResponse:
 
 # Mount routers
 app.include_router(accounts_router)
+app.include_router(transactions_router)
