@@ -21,8 +21,12 @@ services:
       DATABASE_URL: postgresql+psycopg://journaled:journaled@db:5432/journaled
     depends_on:
       - db
-    # Run migrations to head, then keep container alive (replace with your server later)
     command: >
-      /bin/sh -lc "journaled-dev init-db && echo 'DB migrated. You can exec into the container and run CLI commands.' && tail -f /dev/null"
+      /bin/sh -lc "
+        journaled-dev init-db &&
+        echo 'DB migrated. You can exec into the container and run CLI commands.' &&
+        tail -f /dev/null
+      "
+
 volumes:
   pgdata: {}
