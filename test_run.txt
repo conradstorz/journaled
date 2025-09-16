@@ -4,24 +4,165 @@ cachedir: .pytest_cache
 rootdir: D:\Users\Conrad\Documents\programming\journaled
 configfile: pytest.ini
 plugins: anyio-4.10.0, cov-7.0.0
-collecting ... collected 17 items
+collecting ... collected 22 items
 
-tests/test_api.py::test_health_endpoint PASSED                           [  5%]
-tests/test_api.py::test_landing_page PASSED                              [ 11%]
-tests/test_cli_init_db.py::test_init_db_creates_file PASSED              [ 17%]
-tests/test_cli_init_db.py::test_console_script_help PASSED               [ 23%]
-tests/test_cli_integration.py::test_cli_init_db_creates_schema PASSED    [ 29%]
-tests/test_cli_smoke.py::test_help_shows_usage PASSED                    [ 35%]
-tests/test_cli_smoke.py::test_version_flag PASSED                        [ 41%]
-tests/test_import_csv.py::test_import_csv_creates_statement_and_lines PASSED [ 47%]
-tests/test_import_ofx_same_line.py::test_import_ofx_same_line_tags PASSED [ 52%]
-tests/test_migrations_and_seed.py::test_migrations_apply_and_seed_idempotent PASSED [ 58%]
-tests/test_migrations_and_seed.py::test_checking_parent_is_cash PASSED   [ 64%]
-tests/test_posting.py::test_must_balance PASSED                          [ 70%]
-tests/test_posting.py::test_unbalanced_raises PASSED                     [ 76%]
-tests/test_reversal.py::test_create_reversing_entry PASSED               [ 82%]
-tests/test_splits_constraints.py::test_unbalanced_raises_in_service PASSED [ 88%]
-tests/test_splits_constraints.py::test_duplicate_split_unique_constraint PASSED [ 94%]
+tests/test_api.py::test_health_endpoint PASSED                           [  4%]
+tests/test_api.py::test_landing_page PASSED                              [  9%]
+tests/test_api.py::test_docs_page PASSED                                 [ 13%]
+tests/test_api.py::test_openapi_json PASSED                              [ 18%]
+tests/test_api.py::test_health_endpoint_structure PASSED                 [ 22%]
+tests/test_api.py::test_accounts_endpoint PASSED                         [ 27%]
+tests/test_api.py::test_create_account FAILED                            [ 31%]
+tests/test_cli_init_db.py::test_init_db_creates_file PASSED              [ 36%]
+tests/test_cli_init_db.py::test_console_script_help PASSED               [ 40%]
+tests/test_cli_integration.py::test_cli_init_db_creates_schema PASSED    [ 45%]
+tests/test_cli_smoke.py::test_help_shows_usage PASSED                    [ 50%]
+tests/test_cli_smoke.py::test_version_flag PASSED                        [ 54%]
+tests/test_import_csv.py::test_import_csv_creates_statement_and_lines PASSED [ 59%]
+tests/test_import_ofx_same_line.py::test_import_ofx_same_line_tags PASSED [ 63%]
+tests/test_migrations_and_seed.py::test_migrations_apply_and_seed_idempotent PASSED [ 68%]
+tests/test_migrations_and_seed.py::test_checking_parent_is_cash PASSED   [ 72%]
+tests/test_posting.py::test_must_balance PASSED                          [ 77%]
+tests/test_posting.py::test_unbalanced_raises PASSED                     [ 81%]
+tests/test_reversal.py::test_create_reversing_entry PASSED               [ 86%]
+tests/test_splits_constraints.py::test_unbalanced_raises_in_service PASSED [ 90%]
+tests/test_splits_constraints.py::test_duplicate_split_unique_constraint PASSED [ 95%]
 tests/test_void_check.py::test_void_check_creates_reversal PASSED        [100%]
 
-============================= 17 passed in 6.84s ==============================
+================================== FAILURES ===================================
+_____________________________ test_create_account _____________________________
+
+    def test_create_account():
+        client = TestClient(app)
+        payload = {
+            "name": "Test Account",
+            "code": "TST",
+            "type": "ASSET",
+            "currency": "USD",
+            "active": True,
+            "parent_id": None
+        }
+        # Create account
+>       response = client.post("/accounts/", json=payload)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_api.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\starlette\testclient.py:552: in post
+    return super().post(
+.venv\Lib\site-packages\httpx\_client.py:1144: in post
+    return self.request(
+.venv\Lib\site-packages\starlette\testclient.py:451: in request
+    return super().request(
+.venv\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+.venv\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+.venv\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv\Lib\site-packages\anyio\from_thread.py:291: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Conrad\AppData\Roaming\uv\python\cpython-3.12.7-windows-x86_64-none\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\Conrad\AppData\Roaming\uv\python\cpython-3.12.7-windows-x86_64-none\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+.venv\Lib\site-packages\anyio\from_thread.py:222: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+.venv\Lib\site-packages\starlette\applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:78: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\starlette\routing.py:75: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\routing.py:302: in app
+    raw_response = await run_endpoint_function(
+.venv\Lib\site-packages\fastapi\routing.py:215: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\concurrency.py:38: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\to_thread.py:56: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:2476: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:967: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+src\journaled_app\api\routes_accounts.py:33: in create_account
+    acct = Account(
+<string>:4: in __init__
+    ???
+.venv\Lib\site-packages\sqlalchemy\orm\state.py:571: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:224: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+.venv\Lib\site-packages\sqlalchemy\orm\state.py:569: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <journaled_app.models.Account object at 0x00000261E064B200>
+kwargs = {'active': True, 'code': 'TST', 'currency': 'USD', 'name': 'Test Account', ...}
+cls_ = <class 'journaled_app.models.Account'>, k = 'currency'
+
+    def _declarative_constructor(self: Any, **kwargs: Any) -> None:
+        """A simple constructor that allows initialization from kwargs.
+    
+        Sets attributes on the constructed instance using the names and
+        values in ``kwargs``.
+    
+        Only keys that are present as
+        attributes of the instance's class are allowed. These could be,
+        for example, any mapped columns or relationships.
+        """
+        cls_ = type(self)
+        for k in kwargs:
+            if not hasattr(cls_, k):
+>               raise TypeError(
+                    "%r is an invalid keyword argument for %s" % (k, cls_.__name__)
+                )
+E               TypeError: 'currency' is an invalid keyword argument for Account
+
+.venv\Lib\site-packages\sqlalchemy\orm\decl_base.py:2179: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_api.py::test_create_account - TypeError: 'currency' is an i...
+======================== 1 failed, 21 passed in 9.72s =========================
