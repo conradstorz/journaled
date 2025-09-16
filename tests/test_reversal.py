@@ -5,8 +5,8 @@ from journaled_app.models import Transaction, Split, TransactionReversal
 from journaled_app.services.posting import post_transaction
 from journaled_app.services.reversal import create_reversing_entry
 
-def test_create_reversing_entry(session_from_url):
-    db = session_from_url
+def test_create_reversing_entry(cloned_test_db):
+    db = cloned_test_db
     tx = Transaction(date=date.today(), description="Orig")
     s1 = Split(account_id=1, amount=Decimal("100.00"), memo="A")
     s2 = Split(account_id=2, amount=Decimal("-100.00"), memo="B")

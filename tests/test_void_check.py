@@ -4,8 +4,8 @@ from journaled_app.models import Transaction, Split, Check, CheckStatus, Account
 from journaled_app.services.posting import post_transaction
 from journaled_app.services.checks import void_check
 
-def test_void_check_creates_reversal(session_from_url):
-    db = session_from_url
+def test_void_check_creates_reversal(cloned_test_db):
+    db = cloned_test_db
     # Create two accounts for the splits and check
     account1 = Account(name="Cash", type="ASSET", is_active=True)
     account2 = Account(name="Expenses", type="EXPENSE", is_active=True)

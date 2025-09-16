@@ -50,8 +50,9 @@ class Account(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     code: Mapped[Optional[str]] = mapped_column(String(30))
+    currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
     type: Mapped[AccountType] = mapped_column(SAEnum(AccountType), nullable=False)
-    is_active: Mapped[bool] = mapped_column(default=True)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     # Hierarchical COA
     parent_id: Mapped[Optional[int]] = mapped_column(

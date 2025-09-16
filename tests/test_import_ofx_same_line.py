@@ -26,8 +26,8 @@ VERSION:102
 """.strip()
 
 
-def test_import_ofx_same_line_tags(tmp_path: Path, session_from_url):
-    db = session_from_url
+def test_import_ofx_same_line_tags(tmp_path: Path, cloned_test_db):
+    db = cloned_test_db
 
     # account
     acct = Account(name="Checking (same-line)", type=AccountType.ASSET)

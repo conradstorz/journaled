@@ -10,12 +10,12 @@ from journaled_app.services.posting import post_transaction
 from datetime import date
 
 
-def test_unbalanced_raises_in_service(session_from_url):
+def test_unbalanced_raises_in_service(cloned_test_db):
     """
     Test that posting an unbalanced transaction (sum of splits != 0)
     raises a ValueError in the service layer.
     """
-    db = session_from_url
+    db = cloned_test_db
     # Create a transaction with two splits that do not balance
     tx = Transaction(date=date.today(), description="Oops")
     s1 = Split(account_id=1, amount=Decimal("100.00"))  # Credit
@@ -25,12 +25,12 @@ def test_unbalanced_raises_in_service(session_from_url):
         post_transaction(db, tx, [s1, s2])
 
 
-def test_duplicate_split_unique_constraint(session_from_url):
+def test_duplicate_split_unique_constraint(cloned_test_db):
     """
     Test that adding a duplicate Split (same transaction_id and account_id)
     violates the unique constraint and raises an IntegrityError.
     """
-    db = session_from_url
+    db = cloned_test_db
     # Create a balanced transaction with two splits
     tx = Transaction(date=date.today(), description="Dup test")
     s1 = Split(account_id=1, amount=Decimal("100.00"), memo="A")

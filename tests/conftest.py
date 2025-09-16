@@ -1,4 +1,3 @@
-
 # Canonical test DB path (project root)
 # tests/conftest.py
 """
@@ -28,8 +27,9 @@ import logging
 from loguru import logger
 import pytest
 
+
 PROJECT_ROOT = Path(__file__).parent.parent
-CANONICAL_DB_PATH = PROJECT_ROOT / "test.db"
+CANONICAL_DB_PATH = PROJECT_ROOT / "test_canonical.db"
 CANONICAL_DB_URL = f"sqlite:///{CANONICAL_DB_PATH}"
 
 # Helper to assert subprocess success
@@ -42,9 +42,20 @@ def assert_ok(proc, *, msg: str = None):
         ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
         raise AssertionError(details)
 
+
 def pytest_configure():
-    import os
-    os.environ["DATABASE_URL"] = CANONICAL_DB_URL
+    # Create canonical DB and run migrations ONCE
+    if CANONICAL_DB_PATH.exists():
+        CANONICAL_DB_PATH.unlink()
+    from sqlalchemy import create_engine
+    engine = create_engine(CANONICAL_DB_URL, future=True)
+    from alembic.config import Config
+    from alembic import command
+    alembic_cfg = Config(str(PROJECT_ROOT / "alembic.ini"))
+    alembic_cfg.set_main_option("sqlalchemy.url", CANONICAL_DB_URL)
+    command.upgrade(alembic_cfg, "head")
+    engine.dispose()
+    os.environ["DATABASE_URL"] = str(CANONICAL_DB_URL)
 
 def _merge_env(extra: Mapping[str, str] | None = None) -> dict[str, str]:
     """Return a copy of os.environ with optional overrides."""
@@ -119,37 +130,33 @@ def _migrate(url: str) -> None:
         logger.exception(f"Alembic migration failed for DB URL: {url}")
         raise
 
+
+import tempfile
+import shutil
+import uuid
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 @pytest.fixture(scope="function")
-def session_from_url() -> "Session":
+def cloned_test_db():
     """
-    Handy session fixture for tests that want a DB session.
+    Clone the canonical test DB for each test, set DATABASE_URL, and clean up after.
     """
-    import tempfile
-    import uuid
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    # Create a unique DB file per test
-    db_path = tempfile.gettempdir() + f"/test_{uuid.uuid4().hex}.db"
-    url = f"sqlite:///{db_path}"
+    clone_path = Path(tempfile.gettempdir()) / f"test_clone_{uuid.uuid4().hex}.db"
+    shutil.copy(CANONICAL_DB_PATH, clone_path)
+    url = f"sqlite:///{clone_path}"
     os.environ["DATABASE_URL"] = url
-    logger.info(f"Creating per-test SQLAlchemy engine for URL: {url}")
+    logger.info(f"Cloned test DB for test: {clone_path}")
     engine = create_engine(url, future=True)
-    # Run Alembic migrations to create tables
-    from alembic.config import Config
-    from alembic import command
-    alembic_cfg = Config(str(PROJECT_ROOT / "alembic.ini"))
-    alembic_cfg.set_main_option("sqlalchemy.url", url)
-    command.upgrade(alembic_cfg, "head")
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     db = SessionLocal()
-    logger.info(f"Session created: {db}")
     try:
-        logger.info("Yielding DB session to test.")
         yield db
     finally:
-        logger.info("Closing DB session and disposing engine.")
         db.close()
         engine.dispose()
+        if clone_path.exists():
+            clone_path.unlink()
 
 @pytest.fixture(autouse=True, scope='session')
 def silence_sqlalchemy_logging():

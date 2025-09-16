@@ -25,25 +25,25 @@ def main():
         '-p', 'no:warnings', # Suppress all warnings
         '--tb=line',         # One-line tracebacks for errors/failures
         '--show-capture=no', # Do not show captured stdout/stderr, even on failure
-        'tests/test_cli_integration.py'  # Only run the CLI integration test file
+        '--maxfail=1',       # Stop after first failure
     ]
 
-    print("Running CLI integration tests with suppressed SQLAlchemy and warning output...")
-    print(f"Command: {' '.join(pytest_cmd)}\n")
-
-    # Run pytest as a subprocess
-    result = subprocess.run(
-        pytest_cmd,
-        env=env,
-        text=True
-    )
-
-    # Print a summary of the result
-    if result.returncode == 0:
-        print("\nAll tests passed! ✅")
-    else:
-        print(f"\nSome tests failed. Exit code: {result.returncode}")
-        sys.exit(result.returncode)
+    with open("test_run.txt", "w") as f:
+        f.write("Running CLI integration tests with suppressed SQLAlchemy and warning output...\n")
+        f.write(f"Command: {' '.join(pytest_cmd)}\n\n")
+        result = subprocess.run(
+            pytest_cmd,
+            env=env,
+            text=True,
+            stdout=f,
+            stderr=subprocess.STDOUT
+        )
+        # Write a summary of the result
+        if result.returncode == 0:
+            f.write("\nAll tests passed! ✅\n")
+        else:
+            f.write(f"\nSome tests failed. Exit code: {result.returncode}\n")
+            sys.exit(result.returncode)
 
 if __name__ == "__main__":
     main()

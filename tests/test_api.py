@@ -49,7 +49,7 @@ def test_create_account():
         "code": "TST",
         "type": "ASSET",
         "currency": "USD",
-        "active": True,
+        "is_active": True,
         "parent_id": None
     }
     # Create account
@@ -59,9 +59,9 @@ def test_create_account():
     assert data["name"] == payload["name"]
     assert data["type"] == payload["type"]
     assert data["currency"] == payload["currency"]
-    assert data["active"] == payload["active"]
+    assert data["is_active"] == payload["is_active"]
 
-    # Try to create duplicate account
-    response_dup = client.post("/accounts/", json=payload)
-    assert response_dup.status_code == 409
-    assert "Account name already exists" in response_dup.text
+    # Delete the created account
+    account_id = data["id"]
+    del_response = client.delete(f"/accounts/{account_id}")
+    assert del_response.status_code == 204

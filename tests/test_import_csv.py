@@ -7,8 +7,8 @@ from journaled_app.services.import_csv import import_statement_csv
 
 CSV_CONTENT = "date,amount,description,fitid\n2025-01-06,-50.00,OFFICE SUPPLIES,abc123\n2025-01-07,100.00,REFUND,def456\n"
 
-def test_import_csv_creates_statement_and_lines(tmp_path, session_from_url):
-    db = session_from_url
+def test_import_csv_creates_statement_and_lines(tmp_path, cloned_test_db):
+    db = cloned_test_db
     csv_file = tmp_path / "bank.csv"
     csv_file.write_text(CSV_CONTENT, encoding="utf-8")
 

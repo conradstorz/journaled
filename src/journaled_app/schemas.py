@@ -9,7 +9,7 @@ class AccountBase(BaseModel):
     type: Literal["ASSET","LIABILITY","EQUITY","INCOME","EXPENSE"]
     parent_id: Optional[int] = None
     currency: str = "USD"
-    active: bool = True
+    is_active: bool = True
 
 class AccountCreate(AccountBase):
     pass

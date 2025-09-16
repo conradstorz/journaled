@@ -2,8 +2,8 @@ from sqlalchemy import select, func
 from journaled_app.models import Account, AccountType
 from journaled_app.seeds import seed_chart_of_accounts
 
-def test_migrations_apply_and_seed_idempotent(session_from_url):
-    db = session_from_url
+def test_migrations_apply_and_seed_idempotent(cloned_test_db):
+    db = cloned_test_db
     seed_chart_of_accounts(db)
     count1 = db.scalar(select(func.count()).select_from(Account))
     assert count1 >= 7
@@ -11,8 +11,8 @@ def test_migrations_apply_and_seed_idempotent(session_from_url):
     count2 = db.scalar(select(func.count()).select_from(Account))
     assert count2 == count1, "Seeding should be idempotent and not create duplicates"
 
-def test_checking_parent_is_cash(session_from_url):
-    db = session_from_url
+def test_checking_parent_is_cash(cloned_test_db):
+    db = cloned_test_db
     seed_chart_of_accounts(db)
     cash = db.execute(select(Account).where(Account.name == "Cash")).scalar_one()
     checking = db.execute(select(Account).where(Account.name == "Checking Account")).scalar_one()
