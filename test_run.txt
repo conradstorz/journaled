@@ -20,7 +20,7 @@ tests\test_reversal.py .                                                 [ 88%]
 tests\test_splits_constraints.py ..                                      [ 96%]
 tests\test_void_check.py .                                               [100%]
 
-============================= 26 passed in 7.33s ==============================
+============================= 26 passed in 6.44s ==============================
 Running CLI integration tests with suppressed SQLAlchemy and warning output...
 Command: pytest --tb=line --maxfail=1
 

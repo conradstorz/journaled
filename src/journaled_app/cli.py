@@ -39,6 +39,13 @@ def cmd_init_db(args) -> int:
     logger.info("Applying migrations to head…")
     command.upgrade(alembic_config(), "head")
     logger.success("Database is up-to-date.")
+    # Seed chart of accounts after migrations
+    db = SessionLocal()
+    try:
+        seed_chart_of_accounts(db)
+    finally:
+        db.close()
+    logger.success("Seeded chart of accounts.")
     return 0
 
 def cmd_make_migration(args) -> int:

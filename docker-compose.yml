@@ -26,7 +26,7 @@ services:
       - "8000:8000"
     command: >
       /bin/sh -lc "
-        uvicorn journaled_app.app:app --host 0.0.0.0 --port 8000 --reload
+        /app/journaled/.venv/bin/uvicorn journaled_app.app:app --host 0.0.0.0 --port 8000 --reload
       "
 
 volumes:

@@ -17,6 +17,7 @@ class AccountCreate(AccountBase):
 
 class AccountRead(AccountBase):
     id: int
+    balance: float = 0.0
     model_config = ConfigDict(from_attributes=True)
 
 class SplitCreate(BaseModel):

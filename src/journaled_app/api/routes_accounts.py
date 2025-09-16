@@ -12,9 +12,22 @@ router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 @router.get("/", response_model=List[AccountRead])
 def list_accounts(db: Session = Depends(get_db)) -> List[Account]:
+    from sqlalchemy import func
     stmt = select(Account).order_by(Account.type, Account.name)
-    rows = db.execute(stmt).scalars().all()
-    return rows
+    accounts = db.execute(stmt).scalars().all()
+    # Get balances for each account
+    balances = dict(
+        db.query(Split.account_id, func.coalesce(func.sum(Split.amount), 0))
+        .group_by(Split.account_id)
+        .all()
+    )
+    result = []
+    for acct in accounts:
+        balance = float(balances.get(acct.id, 0))
+        acct_dict = acct.__dict__.copy()
+        acct_dict['balance'] = balance
+        result.append(AccountRead(**acct_dict))
+    return result
 
 @router.post("/", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
 def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> Account:

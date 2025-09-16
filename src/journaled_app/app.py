@@ -16,16 +16,34 @@ def landing_page():
     """
     return """
     <html>
-        <head>
-            <title>Journaled API</title>
-        </head>
-        <body>
-            <h1>Welcome to the Journaled API</h1>
-            <p>See <a href="/docs">/docs</a> for interactive API documentation.</p>
-            <p>Health check: <a href="/health">/health</a></p>
-        </body>
-    </html>
-    """
+      <head>
+        <title>Journaled - MVP Landing</title>
+                <meta name='viewport' content='width=device-width, initial-scale=1'>
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7fa; margin: 0; padding: 0; }
+                    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+                    h1 { color: #2c3e50; margin-top: 0; }
+                    nav { margin: 24px 0; }
+                    nav a { display: inline-block; margin: 0 12px 12px 0; padding: 10px 18px; background: #2c3e50; color: #fff; border-radius: 4px; text-decoration: none; font-weight: 500; transition: background 0.2s; }
+                    nav a:hover { background: #34495e; }
+                    .desc { color: #555; margin-bottom: 24px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Welcome to Journaled</h1>
+                    <div class="desc">This is the MVP landing page for your accounting API.<br>Navigate below to explore features and documentation.</div>
+                    <nav>
+                        <a href="/docs">API Docs</a>
+                        <a href="/health">Health Check</a>
+                        <a href="/accounts">Accounts</a>
+                        <a href="/transactions">Transactions</a>
+                    </nav>
+                    <p style="font-size:0.95em;color:#888;">Journaled &copy; 2025 &mdash; MVP Demo</p>
+                </div>
+            </body>
+        </html>
+        """
 
 @app.get("/health", tags=["system"])
 def health() -> JSONResponse:
