@@ -17,15 +17,17 @@ services:
       args:
         PYTHON_VERSION: "3.12"
     working_dir: /app/journaled
+
     environment:
       DATABASE_URL: postgresql+psycopg://journaled:journaled@db:5432/journaled
     depends_on:
       - db
+    ports:
+      - "8000:8000"
     command: >
       /bin/sh -lc "
         journaled-dev init-db &&
-        echo 'DB migrated. You can exec into the container and run CLI commands.' &&
-        tail -f /dev/null
+        uvicorn journaled_app.app:app --host 0.0.0.0 --port 8000 --reload
       "
 
 volumes:

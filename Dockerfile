@@ -9,16 +9,18 @@ FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm AS builder
 WORKDIR /app/journaled
 
 # Copy only dependency manifests first for better caching
-COPY journaled/pyproject.toml ./
+COPY pyproject.toml ./
 # If you generate a lock file later, uncomment the next line to improve reproducible builds
-# COPY journaled/uv.lock ./
+# COPY uv.lock ./
 
 # Preload dependencies into .venv without project code
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-install-project --group dev
 
 # Now copy the project source
-COPY journaled/ ./
+COPY src/ ./src/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
 
 # Install project into the venv
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -30,6 +32,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm AS runtime
 
 WORKDIR /app/journaled
+COPY pyproject.toml ./
+COPY src/ ./src/ 
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
 
 # Copy the prepared venv and source
 COPY --from=builder /app/journaled/.venv ./.venv
