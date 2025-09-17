@@ -35,7 +35,10 @@ def create_reversing_entry(db: Session, original_tx_id: int, reversal_date: date
     )
     rev_splits = []
     for s in orig_splits:
-        rev_splits.append(Split(account_id=s.account_id, amount=Decimal(-s.amount), memo=f"Reversal of split {s.id}"))
+        assert s.account_id is not None, f"Original split {s.id} has no account_id!"
+        rev_split = Split(account_id=s.account_id, amount=Decimal(-s.amount), memo=f"Reversal of split {s.id}")
+        assert rev_split.account_id is not None, f"Reversal split for original {s.id} has no account_id!"
+        rev_splits.append(rev_split)
 
     post_transaction(db, rev_tx, rev_splits)
     db.flush()

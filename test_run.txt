@@ -2,23 +2,197 @@ INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
 INFO  [alembic.runtime.migration] Running upgrade  -> 60c64480afb0, Initial migration
 ============================= test session starts =============================
-platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0
-rootdir: D:\Users\Conrad\Documents\programming\journaled
+platform win32 -- Python 3.12.9, pytest-8.4.2, pluggy-1.6.0
+rootdir: D:\Conrad\Documents\Programming\journaled
 configfile: pytest.ini
 plugins: anyio-4.10.0, cov-7.0.0
-collected 26 items
+collected 27 items
 
-tests\test_api.py ...........                                            [ 42%]
-tests\test_cli_init_db.py F
+tests\test_api.py .....2025-09-17 15:01:06.382 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+.2025-09-17 15:01:06.445 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:06.528 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+.2025-09-17 15:01:06.595 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:06.681 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:06.744 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:06.826 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+.2025-09-17 15:01:06.827 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:06.897 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:06.977 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:07.044 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+.2025-09-17 15:01:07.060 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+.2025-09-17 15:01:07.060 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:07.128 | INFO     | journaled_app.db:make_engine:34 - Connecting to database: sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+.
+tests\test_cli_init_db.py Running CLI command: ['D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'journaled_app.cli', 'init-db']
+CWD: D:\Conrad\Documents\Programming\journaled
+ENV: {'ALLUSERSPROFILE': 'C:\\ProgramData', 'APPDATA': 'C:\\Users\\estor\\AppData\\Roaming', 'BUNDLED_DEBUGPY_PATH': 'c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\bundled\\libs\\debugpy', 'CHROME_CRASHPAD_PIPE_NAME': '\\\\.\\pipe\\crashpad_13608_TXILFSVPYLKUDMRR', 'COLORTERM': 'truecolor', 'COMMONPROGRAMFILES': 'C:\\Program Files\\Common Files', 'COMMONPROGRAMFILES(X86)': 'C:\\Program Files (x86)\\Common Files', 'COMMONPROGRAMW6432': 'C:\\Program Files\\Common Files', 'COMPUTERNAME': '410PEARLCFSIV', 'COMSPEC': 'C:\\WINDOWS\\system32\\cmd.exe', 'DRIVERDATA': 'C:\\Windows\\System32\\Drivers\\DriverData', 'EFC_1284_1262719628': '1', 'EFC_1284_1592913036': '1', 'EFC_1284_2283032206': '1', 'EFC_1284_2775293581': '1', 'EFC_1284_3789132940': '1', 'FPS_BROWSER_APP_PROFILE_STRING': 'Internet Explorer', 'FPS_BROWSER_USER_PROFILE_STRING': 'Default', 'GIT_ASKPASS': 'c:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass.sh', 'GIT_PAGER': 'cat', 'HOMEDRIVE': 'C:', 'HOMEPATH': '\\Users\\estor', 'LANG': 'en_US.UTF-8', 'LOCALAPPDATA': 'C:\\Users\\estor\\AppData\\Local', 'LOGONSERVER': '\\\\410PEARLCFSIV', 'NUMBER_OF_PROCESSORS': '8', 'ONEDRIVE': 'C:\\Users\\estor\\OneDrive', 'ONEDRIVECONSUMER': 'C:\\Users\\estor\\OneDrive', 'ONLINESERVICES': 'Online Services', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'undefined', 'OS': 'Windows_NT', 'PATH': 'D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts;C:\\Program Files\\PowerShell\\7;C:\\windows\\system32;C:\\windows;C:\\windows\\System32\\Wbem;C:\\windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\windows\\System32\\OpenSSH\\;C:\\Program Files\\HP\\HP One Agent;C:\\Program Files\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\PowerShell\\7\\;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Launcher\\;C:\\Program Files\\PowerShell\\7;C:\\windows\\system32;C:\\windows;C:\\windows\\System32\\Wbem;C:\\windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\windows\\System32\\OpenSSH\\;C:\\Program Files\\HP\\HP One Agent;C:\\Program Files\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\PowerShell\\7\\;C:\\Program Files\\Git\\cmd;C:\\Users\\estor\\.local\\bin;C:\\Users\\estor\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\estor\\.platformio\\penv\\Scripts;c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\bundled\\scripts\\noConfigScripts;c:\\Users\\estor\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\debugCommand', 'PATHEXT': '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL', 'PLATFORMCODE': '1M', 'POWERSHELL_DISTRIBUTION_CHANNEL': 'MSI:Windows 10 Home', 'PROCESSOR_ARCHITECTURE': 'AMD64', 'PROCESSOR_IDENTIFIER': 'AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD', 'PROCESSOR_LEVEL': '25', 'PROCESSOR_REVISION': '5000', 'PROGRAMDATA': 'C:\\ProgramData', 'PROGRAMFILES': 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)', 'PROGRAMW6432': 'C:\\Program Files', 'PSMODULEPATH': 'C:\\Users\\estor\\OneDrive\\Documents\\PowerShell\\Modules;C:\\Program Files\\PowerShell\\Modules;c:\\program files\\powershell\\7\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\WINDOWS\\system32\\WindowsPowerShell\\v1.0\\Modules', 'PUBLIC': 'C:\\Users\\Public', 'PYDEVD_DISABLE_FILE_VALIDATION': '1', 'PYTHONSTARTUP': 'c:\\Users\\estor\\AppData\\Roaming\\Code\\User\\workspaceStorage\\40f3ba758b39821865a365cb5bfbcacc\\ms-python.python\\pythonrc.py', 'PYTHON_BASIC_REPL': '1', 'REGIONCODE': 'NA', 'SESSIONNAME': 'Console', 'SQLALCHEMY_SILENCE_UBER_WARNING': '1', 'SYSTEMDRIVE': 'C:', 'SYSTEMROOT': 'C:\\WINDOWS', 'TEMP': 'C:\\Users\\estor\\AppData\\Local\\Temp', 'TERM_PROGRAM': 'vscode', 'TERM_PROGRAM_VERSION': '1.104.0', 'TMP': 'C:\\Users\\estor\\AppData\\Local\\Temp', 'USERDOMAIN': '410PEARLCFSIV', 'USERDOMAIN_ROAMINGPROFILE': '410PEARLCFSIV', 'USERNAME': 'estor', 'USERPROFILE': 'C:\\Users\\estor', 'UV_RUN_RECURSION_DEPTH': '1', 'VIRTUAL_ENV': 'D:\\Conrad\\Documents\\Programming\\journaled\\.venv', 'VSCODE_DEBUGPY_ADAPTER_ENDPOINTS': 'c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\.noConfigDebugAdapterEndpoints\\endpoint-c52a631795654b3f.txt', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '', 'VSCODE_GIT_ASKPASS_MAIN': 'c:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass-main.js', 'VSCODE_GIT_ASKPASS_NODE': 'C:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe', 'VSCODE_GIT_IPC_HANDLE': '\\\\.\\pipe\\vscode-git-f426ed2ac7-sock', 'VSCODE_INJECTION': '1', 'VSCODE_PYTHON_AUTOACTIVATE_GUARD': '1', 'WINDIR': 'C:\\WINDOWS', 'PYTEST_VERSION': '8.4.2', 'DATABASE_URL': 'sqlite:///D:\\Conrad\\Documents\\Programming\\journaled\\test.db', 'PYTEST_CURRENT_TEST': 'tests/test_cli_init_db.py::test_init_db_creates_file (call)', 'PYTHONPATH': 'D:\\Conrad\\Documents\\Programming\\journaled\\src;'}
+Subprocess result: CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'journaled_app.cli', 'init-db'], returncode=0, stdout='', stderr="2025-09-17 15:01:07.802 | INFO     | __main__:cmd_init_db:39 - Applying migrations to head…\nINFO  [alembic.runtime.migration] Context impl SQLiteImpl.\nINFO  [alembic.runtime.migration] Will assume non-transactional DDL.\n2025-09-17 15:01:07.813 | SUCCESS  | __main__:cmd_init_db:41 - Database is up-to-date.\n2025-09-17 15:01:07.902 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Cash (AccountType.ASSET)\n2025-09-17 15:01:07.902 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Checking Account (AccountType.ASSET)\n2025-09-17 15:01:07.903 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Accounts Receivable (AccountType.ASSET)\n2025-09-17 15:01:07.903 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Accounts Payable (AccountType.LIABILITY)\n2025-09-17 15:01:07.903 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Owner's Equity (AccountType.EQUITY)\n2025-09-17 15:01:07.904 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Sales (AccountType.INCOME)\n2025-09-17 15:01:07.904 | SUCCESS  | journaled_app.seeds:seed_chart_of_accounts:35 - Created account: Expenses (AccountType.EXPENSE)\n2025-09-17 15:01:08.002 | INFO     | journaled_app.seeds:seed_chart_of_accounts:38 - Chart of accounts seeding complete.\n2025-09-17 15:01:08.003 | SUCCESS  | __main__:cmd_init_db:48 - Seeded chart of accounts.\n")
+..
+tests\test_cli_integration.py 2025-09-17 15:01:08.921 | INFO     | test_cli_integration:test_cli_init_db_creates_schema:27 - Testing CLI init-db with DATABASE_URL=sqlite:///D:\Conrad\Documents\Programming\journaled\test.db
+2025-09-17 15:01:09.732 | INFO     | test_cli_integration:test_cli_init_db_creates_schema:37 - CLI return code: 0
+2025-09-17 15:01:09.734 | INFO     | test_cli_integration:test_cli_init_db_creates_schema:44 - Tables found in DB: ['accounts', 'alembic_version', 'checks', 'parties', 'splits', 'statement_lines', 'statements', 'transaction_reversals', 'transactions', 'users']
+.
+tests\test_cli_smoke.py Running CLI command: ['D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'journaled_app.cli', '--help']
+CWD: None
+ENV: {'ALLUSERSPROFILE': 'C:\\ProgramData', 'APPDATA': 'C:\\Users\\estor\\AppData\\Roaming', 'BUNDLED_DEBUGPY_PATH': 'c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\bundled\\libs\\debugpy', 'CHROME_CRASHPAD_PIPE_NAME': '\\\\.\\pipe\\crashpad_13608_TXILFSVPYLKUDMRR', 'COLORTERM': 'truecolor', 'COMMONPROGRAMFILES': 'C:\\Program Files\\Common Files', 'COMMONPROGRAMFILES(X86)': 'C:\\Program Files (x86)\\Common Files', 'COMMONPROGRAMW6432': 'C:\\Program Files\\Common Files', 'COMPUTERNAME': '410PEARLCFSIV', 'COMSPEC': 'C:\\WINDOWS\\system32\\cmd.exe', 'DRIVERDATA': 'C:\\Windows\\System32\\Drivers\\DriverData', 'EFC_1284_1262719628': '1', 'EFC_1284_1592913036': '1', 'EFC_1284_2283032206': '1', 'EFC_1284_2775293581': '1', 'EFC_1284_3789132940': '1', 'FPS_BROWSER_APP_PROFILE_STRING': 'Internet Explorer', 'FPS_BROWSER_USER_PROFILE_STRING': 'Default', 'GIT_ASKPASS': 'c:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass.sh', 'GIT_PAGER': 'cat', 'HOMEDRIVE': 'C:', 'HOMEPATH': '\\Users\\estor', 'LANG': 'en_US.UTF-8', 'LOCALAPPDATA': 'C:\\Users\\estor\\AppData\\Local', 'LOGONSERVER': '\\\\410PEARLCFSIV', 'NUMBER_OF_PROCESSORS': '8', 'ONEDRIVE': 'C:\\Users\\estor\\OneDrive', 'ONEDRIVECONSUMER': 'C:\\Users\\estor\\OneDrive', 'ONLINESERVICES': 'Online Services', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'undefined', 'OS': 'Windows_NT', 'PATH': 'D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts;C:\\Program Files\\PowerShell\\7;C:\\windows\\system32;C:\\windows;C:\\windows\\System32\\Wbem;C:\\windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\windows\\System32\\OpenSSH\\;C:\\Program Files\\HP\\HP One Agent;C:\\Program Files\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\PowerShell\\7\\;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Launcher\\;C:\\Program Files\\PowerShell\\7;C:\\windows\\system32;C:\\windows;C:\\windows\\System32\\Wbem;C:\\windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\windows\\System32\\OpenSSH\\;C:\\Program Files\\HP\\HP One Agent;C:\\Program Files\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\PowerShell\\7\\;C:\\Program Files\\Git\\cmd;C:\\Users\\estor\\.local\\bin;C:\\Users\\estor\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\estor\\.platformio\\penv\\Scripts;c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\bundled\\scripts\\noConfigScripts;c:\\Users\\estor\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\debugCommand', 'PATHEXT': '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL', 'PLATFORMCODE': '1M', 'POWERSHELL_DISTRIBUTION_CHANNEL': 'MSI:Windows 10 Home', 'PROCESSOR_ARCHITECTURE': 'AMD64', 'PROCESSOR_IDENTIFIER': 'AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD', 'PROCESSOR_LEVEL': '25', 'PROCESSOR_REVISION': '5000', 'PROGRAMDATA': 'C:\\ProgramData', 'PROGRAMFILES': 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)', 'PROGRAMW6432': 'C:\\Program Files', 'PSMODULEPATH': 'C:\\Users\\estor\\OneDrive\\Documents\\PowerShell\\Modules;C:\\Program Files\\PowerShell\\Modules;c:\\program files\\powershell\\7\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\WINDOWS\\system32\\WindowsPowerShell\\v1.0\\Modules', 'PUBLIC': 'C:\\Users\\Public', 'PYDEVD_DISABLE_FILE_VALIDATION': '1', 'PYTHONSTARTUP': 'c:\\Users\\estor\\AppData\\Roaming\\Code\\User\\workspaceStorage\\40f3ba758b39821865a365cb5bfbcacc\\ms-python.python\\pythonrc.py', 'PYTHON_BASIC_REPL': '1', 'REGIONCODE': 'NA', 'SESSIONNAME': 'Console', 'SQLALCHEMY_SILENCE_UBER_WARNING': '1', 'SYSTEMDRIVE': 'C:', 'SYSTEMROOT': 'C:\\WINDOWS', 'TEMP': 'C:\\Users\\estor\\AppData\\Local\\Temp', 'TERM_PROGRAM': 'vscode', 'TERM_PROGRAM_VERSION': '1.104.0', 'TMP': 'C:\\Users\\estor\\AppData\\Local\\Temp', 'USERDOMAIN': '410PEARLCFSIV', 'USERDOMAIN_ROAMINGPROFILE': '410PEARLCFSIV', 'USERNAME': 'estor', 'USERPROFILE': 'C:\\Users\\estor', 'UV_RUN_RECURSION_DEPTH': '1', 'VIRTUAL_ENV': 'D:\\Conrad\\Documents\\Programming\\journaled\\.venv', 'VSCODE_DEBUGPY_ADAPTER_ENDPOINTS': 'c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\.noConfigDebugAdapterEndpoints\\endpoint-c52a631795654b3f.txt', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '', 'VSCODE_GIT_ASKPASS_MAIN': 'c:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass-main.js', 'VSCODE_GIT_ASKPASS_NODE': 'C:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe', 'VSCODE_GIT_IPC_HANDLE': '\\\\.\\pipe\\vscode-git-f426ed2ac7-sock', 'VSCODE_INJECTION': '1', 'VSCODE_PYTHON_AUTOACTIVATE_GUARD': '1', 'WINDIR': 'C:\\WINDOWS', 'PYTEST_VERSION': '8.4.2', 'DATABASE_URL': 'sqlite:///D:\\Conrad\\Documents\\Programming\\journaled\\test.db', 'PYTEST_CURRENT_TEST': 'tests/test_cli_smoke.py::test_help_shows_usage (call)', 'PYTHONPATH': 'D:\\Conrad\\Documents\\Programming\\journaled\\src;'}
+Subprocess result: CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'journaled_app.cli', '--help'], returncode=0, stdout="usage: journaled-dev [-h] [--version]\n                     {init-db,rev,downgrade,seed-coa,reverse-tx,void-check,reconcile-propose,reconcile-apply,reconcile-unmatch,reconcile-status,import-csv,import-ofx}\n                     ...\n\nJournaled dev utilities\n\npositional arguments:\n  {init-db,rev,downgrade,seed-coa,reverse-tx,void-check,reconcile-propose,reconcile-apply,reconcile-unmatch,reconcile-status,import-csv,import-ofx}\n    init-db             Apply Alembic migrations to head\n    rev                 Create a new Alembic revision (autogenerate)\n    downgrade           Downgrade Alembic by N steps\n    seed-coa            Insert minimal chart of accounts\n    reverse-tx          Create reversing entry for a transaction id\n    void-check          Void a check (by id) and optionally create a reversing\n                        entry\n    reconcile-propose   Propose matches for a statement period\n    reconcile-apply     Apply a match: line -> split\n    reconcile-unmatch   Unmatch a statement line\n    reconcile-status    Show reconciliation status for a statement\n    import-csv          Import a bank CSV into statement_lines (creates/finds\n                        Statement)\n    import-ofx          Import an OFX/QFX file into statement_lines\n\noptions:\n  -h, --help            show this help message and exit\n  --version             show program's version number and exit\n", stderr='')
+.Running CLI command: ['D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'journaled_app.cli', '--version']
+CWD: None
+ENV: {'ALLUSERSPROFILE': 'C:\\ProgramData', 'APPDATA': 'C:\\Users\\estor\\AppData\\Roaming', 'BUNDLED_DEBUGPY_PATH': 'c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\bundled\\libs\\debugpy', 'CHROME_CRASHPAD_PIPE_NAME': '\\\\.\\pipe\\crashpad_13608_TXILFSVPYLKUDMRR', 'COLORTERM': 'truecolor', 'COMMONPROGRAMFILES': 'C:\\Program Files\\Common Files', 'COMMONPROGRAMFILES(X86)': 'C:\\Program Files (x86)\\Common Files', 'COMMONPROGRAMW6432': 'C:\\Program Files\\Common Files', 'COMPUTERNAME': '410PEARLCFSIV', 'COMSPEC': 'C:\\WINDOWS\\system32\\cmd.exe', 'DRIVERDATA': 'C:\\Windows\\System32\\Drivers\\DriverData', 'EFC_1284_1262719628': '1', 'EFC_1284_1592913036': '1', 'EFC_1284_2283032206': '1', 'EFC_1284_2775293581': '1', 'EFC_1284_3789132940': '1', 'FPS_BROWSER_APP_PROFILE_STRING': 'Internet Explorer', 'FPS_BROWSER_USER_PROFILE_STRING': 'Default', 'GIT_ASKPASS': 'c:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass.sh', 'GIT_PAGER': 'cat', 'HOMEDRIVE': 'C:', 'HOMEPATH': '\\Users\\estor', 'LANG': 'en_US.UTF-8', 'LOCALAPPDATA': 'C:\\Users\\estor\\AppData\\Local', 'LOGONSERVER': '\\\\410PEARLCFSIV', 'NUMBER_OF_PROCESSORS': '8', 'ONEDRIVE': 'C:\\Users\\estor\\OneDrive', 'ONEDRIVECONSUMER': 'C:\\Users\\estor\\OneDrive', 'ONLINESERVICES': 'Online Services', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'undefined', 'OS': 'Windows_NT', 'PATH': 'D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts;C:\\Program Files\\PowerShell\\7;C:\\windows\\system32;C:\\windows;C:\\windows\\System32\\Wbem;C:\\windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\windows\\System32\\OpenSSH\\;C:\\Program Files\\HP\\HP One Agent;C:\\Program Files\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\PowerShell\\7\\;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\estor\\AppData\\Local\\Programs\\Python\\Launcher\\;C:\\Program Files\\PowerShell\\7;C:\\windows\\system32;C:\\windows;C:\\windows\\System32\\Wbem;C:\\windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\windows\\System32\\OpenSSH\\;C:\\Program Files\\HP\\HP One Agent;C:\\Program Files\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\PowerShell\\7\\;C:\\Program Files\\Git\\cmd;C:\\Users\\estor\\.local\\bin;C:\\Users\\estor\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\estor\\.platformio\\penv\\Scripts;c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\bundled\\scripts\\noConfigScripts;c:\\Users\\estor\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\debugCommand', 'PATHEXT': '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL', 'PLATFORMCODE': '1M', 'POWERSHELL_DISTRIBUTION_CHANNEL': 'MSI:Windows 10 Home', 'PROCESSOR_ARCHITECTURE': 'AMD64', 'PROCESSOR_IDENTIFIER': 'AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD', 'PROCESSOR_LEVEL': '25', 'PROCESSOR_REVISION': '5000', 'PROGRAMDATA': 'C:\\ProgramData', 'PROGRAMFILES': 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)', 'PROGRAMW6432': 'C:\\Program Files', 'PSMODULEPATH': 'C:\\Users\\estor\\OneDrive\\Documents\\PowerShell\\Modules;C:\\Program Files\\PowerShell\\Modules;c:\\program files\\powershell\\7\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\WINDOWS\\system32\\WindowsPowerShell\\v1.0\\Modules', 'PUBLIC': 'C:\\Users\\Public', 'PYDEVD_DISABLE_FILE_VALIDATION': '1', 'PYTHONSTARTUP': 'c:\\Users\\estor\\AppData\\Roaming\\Code\\User\\workspaceStorage\\40f3ba758b39821865a365cb5bfbcacc\\ms-python.python\\pythonrc.py', 'PYTHON_BASIC_REPL': '1', 'REGIONCODE': 'NA', 'SESSIONNAME': 'Console', 'SQLALCHEMY_SILENCE_UBER_WARNING': '1', 'SYSTEMDRIVE': 'C:', 'SYSTEMROOT': 'C:\\WINDOWS', 'TEMP': 'C:\\Users\\estor\\AppData\\Local\\Temp', 'TERM_PROGRAM': 'vscode', 'TERM_PROGRAM_VERSION': '1.104.0', 'TMP': 'C:\\Users\\estor\\AppData\\Local\\Temp', 'USERDOMAIN': '410PEARLCFSIV', 'USERDOMAIN_ROAMINGPROFILE': '410PEARLCFSIV', 'USERNAME': 'estor', 'USERPROFILE': 'C:\\Users\\estor', 'UV_RUN_RECURSION_DEPTH': '1', 'VIRTUAL_ENV': 'D:\\Conrad\\Documents\\Programming\\journaled\\.venv', 'VSCODE_DEBUGPY_ADAPTER_ENDPOINTS': 'c:\\Users\\estor\\.vscode\\extensions\\ms-python.debugpy-2025.10.0-win32-x64\\.noConfigDebugAdapterEndpoints\\endpoint-c52a631795654b3f.txt', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '', 'VSCODE_GIT_ASKPASS_MAIN': 'c:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass-main.js', 'VSCODE_GIT_ASKPASS_NODE': 'C:\\Users\\estor\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe', 'VSCODE_GIT_IPC_HANDLE': '\\\\.\\pipe\\vscode-git-f426ed2ac7-sock', 'VSCODE_INJECTION': '1', 'VSCODE_PYTHON_AUTOACTIVATE_GUARD': '1', 'WINDIR': 'C:\\WINDOWS', 'PYTEST_VERSION': '8.4.2', 'DATABASE_URL': 'sqlite:///D:\\Conrad\\Documents\\Programming\\journaled\\test.db', 'PYTEST_CURRENT_TEST': 'tests/test_cli_smoke.py::test_version_flag (call)', 'PYTHONPATH': 'D:\\Conrad\\Documents\\Programming\\journaled\\src;'}
+Subprocess result: CompletedProcess(args=['D:\\Conrad\\Documents\\Programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'journaled_app.cli', '--version'], returncode=0, stdout='journaled-dev 1.0.0\n', stderr='')
+.
+tests\test_db_schema_compatibility.py INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+.
+tests\test_import_csv.py 2025-09-17 15:01:11.382 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_4e52902fa9de402d969fd30165e04170.db
+2025-09-17 15:01:11.415 | INFO     | journaled_app.services.import_csv:import_statement_csv:94 - Skip duplicate by FITID: abc123
+2025-09-17 15:01:11.415 | INFO     | journaled_app.services.import_csv:import_statement_csv:94 - Skip duplicate by FITID: def456
+.
+tests\test_import_ofx_same_line.py 2025-09-17 15:01:11.415 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_ddd20e1039b74405a64e305609b5a567.db
+DEBUG: STMTTRN blocks detected: 2
+DEBUG: Transactions parsed: 2
+.
+tests\test_migrations_and_seed.py 2025-09-17 15:01:11.459 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_6746f151ac01473aaa60805accaa0990.db
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Cash' already exists, skipping.
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Checking Account' already exists, skipping.
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Accounts Receivable' already exists, skipping.
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Accounts Payable' already exists, skipping.
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Owner's Equity' already exists, skipping.
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Sales' already exists, skipping.
+2025-09-17 15:01:11.465 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Expenses' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:38 - Chart of accounts seeding complete.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Cash' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Checking Account' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Accounts Receivable' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Accounts Payable' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Owner's Equity' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Sales' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Expenses' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:38 - Chart of accounts seeding complete.
+.2025-09-17 15:01:11.466 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_021e79bd3ed64b5fbf1c1a2be98602a2.db
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Cash' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Checking Account' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Accounts Receivable' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Accounts Payable' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Owner's Equity' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Sales' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:22 - Account 'Expenses' already exists, skipping.
+2025-09-17 15:01:11.466 | INFO     | journaled_app.seeds:seed_chart_of_accounts:38 - Chart of accounts seeding complete.
+.
+tests\test_posting.py ..
+tests\test_reversal.py 2025-09-17 15:01:11.492 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_532ae506c00c45f4bdecb3b817d54bf9.db
+2025-09-17 15:01:11.534 | SUCCESS  | journaled_app.services.reversal:create_reversing_entry:48 - Created reversing transaction 4 for original 3
+.
+tests\test_splits_constraints.py 2025-09-17 15:01:11.535 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_48187a8aa1b34e069e15c863b0bdb260.db
+.2025-09-17 15:01:11.535 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_de20f9be083c4ce4ad3f82edf3c36e90.db
+.
+tests\test_void_check.py 2025-09-17 15:01:11.550 | INFO     | conftest:cloned_test_db:149 - Cloned test DB for test: C:\Users\estor\AppData\Local\Temp\test_clone_d75ef2a449084a2187ec233c1446fffc.db
+2025-09-17 15:01:11.616 | SUCCESS  | journaled_app.services.reversal:create_reversing_entry:48 - Created reversing transaction 4 for original 1
+2025-09-17 15:01:11.616 | SUCCESS  | journaled_app.services.checks:void_check:22 - Voided check 1
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+NEW Split: id=None, account_id=12, transaction_id=None, amount=-250.00, memo=Cash out
+NEW Split: id=None, account_id=13, transaction_id=None, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+SESSION Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+SESSION Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DB Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+DB Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+SESSION Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+SESSION Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DB Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+DB Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+SESSION Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+SESSION Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+SESSION Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+SESSION Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DB Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+DB Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+SESSION Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+SESSION Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+SESSION Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+SESSION Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+NEW Split: id=None, account_id=1, transaction_id=None, amount=-100.00, memo=Reversal of split 1
+NEW Split: id=None, account_id=2, transaction_id=None, amount=100.00, memo=Reversal of split 2
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DB Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+DB Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+SESSION Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+SESSION Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+SESSION Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+SESSION Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+SESSION Split: id=8, account_id=2, transaction_id=4, amount=100.00, memo=Reversal of split 2
+SESSION Split: id=7, account_id=1, transaction_id=4, amount=-100.00, memo=Reversal of split 1
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DB Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+DB Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DB Split: id=7, account_id=1, transaction_id=4, amount=-100.00, memo=Reversal of split 1
+DB Split: id=8, account_id=2, transaction_id=4, amount=100.00, memo=Reversal of split 2
+DIAGNOSTIC: before_flush - printing ALL Split objects in session
+SESSION Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+SESSION Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DIAGNOSTIC: before_flush - printing ALL splits in DB before flush
+DB Split: id=1, account_id=1, transaction_id=1, amount=100.00, memo=None
+DB Split: id=2, account_id=2, transaction_id=1, amount=-100.00, memo=None
+DB Split: id=3, account_id=3, transaction_id=2, amount=100.00, memo=None
+DB Split: id=4, account_id=4, transaction_id=2, amount=-100.00, memo=None
+DB Split: id=5, account_id=12, transaction_id=3, amount=-250.00, memo=Cash out
+DB Split: id=6, account_id=13, transaction_id=3, amount=250.00, memo=Expense
+DB Split: id=7, account_id=1, transaction_id=4, amount=-100.00, memo=Reversal of split 1
+DB Split: id=8, account_id=2, transaction_id=4, amount=100.00, memo=Reversal of split 2
+F
 
 ================================== FAILURES ===================================
-D:\Users\Conrad\Documents\programming\journaled\tests\test_cli_init_db.py:16: AssertionError: DB file was not created. STDERR:
+D:\Conrad\Documents\Programming\journaled\.venv\Lib\site-packages\sqlalchemy\engine\default.py:948: sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: splits.account_id
 =========================== short test summary info ===========================
-FAILED tests/test_cli_init_db.py::test_init_db_creates_file - AssertionError:...
+FAILED tests/test_void_check.py::test_void_check_creates_reversal - sqlalchem...
 !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
-======================== 1 failed, 11 passed in 2.96s =========================
+======================== 1 failed, 26 passed in 5.67s =========================
 Running CLI integration tests with suppressed SQLAlchemy and warning output...
-Command: pytest --tb=line --maxfail=1
+Command: pytest --tb=line --maxfail=1 --capture=no
 
 
 Some tests failed. Exit code: 1
