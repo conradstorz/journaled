@@ -7,7 +7,7 @@ from typing import Iterable, Mapping, Sequence, List
 
 from sqlalchemy.orm import Session
 
-from ..models import Transaction, Split
+from journaled_app.models import Transaction, Split
 
 
 class UnbalancedTransactionError(ValueError):

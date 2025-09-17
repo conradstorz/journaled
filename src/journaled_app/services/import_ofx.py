@@ -11,7 +11,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models import Statement, StatementLine
+from journaled_app.models import Statement, StatementLine
 
 
 # -------------------------

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from sqlalchemy.orm import Session
 from loguru import logger
-from ..models import Check, CheckStatus
+from journaled_app.models import Check, CheckStatus
 from .reversal import create_reversing_entry
 
 def void_check(db: Session, check_id: int, reversal_date: date, memo: str | None = None, create_reversal: bool = True) -> None:

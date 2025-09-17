@@ -1,6 +1,6 @@
 from loguru import logger
 from sqlalchemy.orm import Session
-from .models import Account, AccountType
+from journaled_app.models import Account, AccountType
 
 def seed_chart_of_accounts(db: Session) -> None:
     """Insert a minimal chart of accounts if not already present."""
