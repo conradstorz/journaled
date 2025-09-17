@@ -20,11 +20,9 @@ def main():
     # Build the pytest command
     pytest_cmd = [
         'pytest',
-        #'-q',                # Quiet mode: minimal output
-        #'-p', 'no:warnings', # Suppress all warnings
         '--tb=line',         # One-line tracebacks for errors/failures
-        #'--show-capture=no', # Do not show captured stdout/stderr, even on failure
         '--maxfail=1',       # Stop after first failure
+        '--capture=no',      # Show all print output
     ]
 
     with open("test_run.txt", "w") as f:
@@ -42,6 +40,13 @@ def main():
             f.write("\nAll tests passed!\n")
         else:
             f.write(f"\nSome tests failed. Exit code: {result.returncode}\n")
+            # Print last 40 lines of test_run.txt to console for traceability
+            f.flush()
+            with open("test_run.txt", "r") as fr:
+                lines = fr.readlines()
+                print("\n--- Last 40 lines of test_run.txt ---")
+                for line in lines[-40:]:
+                    print(line.rstrip())
             sys.exit(result.returncode)
     print("Run ended. Pytest output is available in test_run.txt")
 
