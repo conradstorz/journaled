@@ -2,9 +2,9 @@
 
 """Initial migration
 
-Revision ID: 11937d304c9f
+Revision ID: 60c64480afb0
 Revises: 
-Create Date: 2025-09-15 21:33:52.918975
+Create Date: 2025-09-17 10:07:10.732646
 
 """
 from alembic import op
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '11937d304c9f'
+revision = '60c64480afb0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -38,6 +38,18 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_parties_name'), 'parties', ['name'], unique=False)
+    op.create_table('users',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('username', sa.String(length=64), nullable=False),
+    sa.Column('password_hash', sa.String(length=128), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('is_superuser', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('last_login', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
     op.create_table('checks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('account_id', sa.Integer(), nullable=False),
@@ -134,6 +146,8 @@ def downgrade() -> None:
     op.drop_table('statements')
     op.drop_index(op.f('ix_checks_check_number'), table_name='checks')
     op.drop_table('checks')
+    op.drop_index(op.f('ix_users_username'), table_name='users')
+    op.drop_table('users')
     op.drop_index(op.f('ix_parties_name'), table_name='parties')
     op.drop_table('parties')
     op.drop_index(op.f('ix_accounts_parent_id'), table_name='accounts')

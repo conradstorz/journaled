@@ -1,6 +1,6 @@
 INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade  -> 11937d304c9f, Initial migration
+INFO  [alembic.runtime.migration] Running upgrade  -> 60c64480afb0, Initial migration
 ============================= test session starts =============================
 platform win32 -- Python 3.12.7, pytest-8.4.2, pluggy-1.6.0
 rootdir: D:\Users\Conrad\Documents\programming\journaled
@@ -9,20 +9,16 @@ plugins: anyio-4.10.0, cov-7.0.0
 collected 26 items
 
 tests\test_api.py ...........                                            [ 42%]
-tests\test_cli_init_db.py ..                                             [ 50%]
-tests\test_cli_integration.py .                                          [ 53%]
-tests\test_cli_smoke.py ..                                               [ 61%]
-tests\test_import_csv.py .                                               [ 65%]
-tests\test_import_ofx_same_line.py .                                     [ 69%]
-tests\test_migrations_and_seed.py ..                                     [ 76%]
-tests\test_posting.py ..                                                 [ 84%]
-tests\test_reversal.py .                                                 [ 88%]
-tests\test_splits_constraints.py ..                                      [ 96%]
-tests\test_void_check.py .                                               [100%]
+tests\test_cli_init_db.py F
 
-============================= 26 passed in 6.44s ==============================
+================================== FAILURES ===================================
+D:\Users\Conrad\Documents\programming\journaled\tests\test_cli_init_db.py:16: AssertionError: DB file was not created. STDERR:
+=========================== short test summary info ===========================
+FAILED tests/test_cli_init_db.py::test_init_db_creates_file - AssertionError:...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed, 11 passed in 2.96s =========================
 Running CLI integration tests with suppressed SQLAlchemy and warning output...
 Command: pytest --tb=line --maxfail=1
 
 
-All tests passed!
+Some tests failed. Exit code: 1
