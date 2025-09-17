@@ -29,7 +29,7 @@ import pytest
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
-CANONICAL_DB_PATH = PROJECT_ROOT / "test_canonical.db"
+CANONICAL_DB_PATH = PROJECT_ROOT / "test.db"
 CANONICAL_DB_URL = f"sqlite:///{CANONICAL_DB_PATH}"
 
 # Helper to assert subprocess success
