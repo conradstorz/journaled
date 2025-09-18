@@ -6,9 +6,9 @@ plugins: anyio-4.10.0, cov-7.0.0
 collected 26 items
 
 tests\test_api.py ...........                                            [ 42%]
-tests\test_cli_init_db.py ..                                             [ 50%]
+tests\test_cli_init_db.py FF                                             [ 50%]
 tests\test_cli_integration.py .                                          [ 53%]
-tests\test_cli_smoke.py ..                                               [ 61%]
+tests\test_cli_smoke.py FF                                               [ 61%]
 tests\test_import_csv.py .                                               [ 65%]
 tests\test_import_ofx_same_line.py .                                     [ 69%]
 tests\test_migrations_and_seed.py ..                                     [ 76%]
@@ -17,4 +17,139 @@ tests\test_reversal.py .                                                 [ 88%]
 tests\test_splits_constraints.py ..                                      [ 96%]
 tests\test_void_check.py .                                               [100%]
 
-============================= 26 passed in 6.83s ==============================
+================================== FAILURES ===================================
+__________________________ test_init_db_creates_file __________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000186CA2F8220>
+
+    def test_init_db_creates_file(run_cli):
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        db = project_root / "test.db"
+        # Use uv run for CLI invocation per project rules
+        import subprocess
+        cmd = ["uv", "run", "src/journaled_app/cli.py", "init-db", "--db", str(db)]
+        res = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
+        assert res is not None, "Subprocess result is None. CLI may have failed to launch."
+>       assert_ok(res)
+
+tests\test_cli_init_db.py:16: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+proc = CompletedProcess(args=['uv', 'run', 'src/journaled_app/cli.py', 'init-db', '--db', 'D:\\Users\\Conrad\\Documents\\prog...tch_ids=match_id or None) if not dry_run else 0\n    ^^^^^^^\nSyntaxError: expected \'except\' or \'finally\' block\n')
+
+    def assert_ok(proc, *, msg: str = None):
+        """
+        Helper to assert that a subprocess completed successfully.
+        Raises AssertionError with details if the process failed.
+        """
+        # Check if the process result is None (CLI may have failed to launch)
+        # If the process returned a nonzero exit code, raise with details
+        if proc is None:
+            raise AssertionError("Subprocess result is None. The CLI may have failed to launch or returned no result.")
+        if proc.returncode != 0:
+            details = (
+                (msg + "\n") if msg else ""
+            ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
+>           raise AssertionError(details)
+E           AssertionError: Exit code: 1
+E           --- STDOUT ---
+E           
+E           --- STDERR ---
+E             File "D:\Users\Conrad\Documents\programming\journaled\src\journaled_app\cli.py", line 154
+E               applied = apply_match(db, params, match_ids=match_id or None) if not dry_run else 0
+E               ^^^^^^^
+E           SyntaxError: expected 'except' or 'finally' block
+
+tests\conftest.py:59: AssertionError
+__________________________ test_console_script_help ___________________________
+
+    def test_console_script_help():
+        # Run CLI help using Python module directly
+        import subprocess
+        import sys
+        import os
+        src_path = str(Path(__file__).parent.parent / "src")
+        env = os.environ.copy()
+        env["PYTHONPATH"] = src_path + os.pathsep + env.get("PYTHONPATH", "")
+        res = subprocess.run([
+            sys.executable, "-m", "journaled_app.cli", "--help"
+        ], env=env, capture_output=True, text=True)
+>       assert res.returncode == 0, res.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "<frozen runpy>", line 189, in _run_module_as_main
+E           File "<frozen runpy>", line 159, in _get_module_details
+E           File "<frozen importlib._bootstrap_external>", line 1129, in get_code
+E           File "<frozen importlib._bootstrap_external>", line 1059, in source_to_code
+E           File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+E           File "D:\Users\Conrad\Documents\programming\journaled\src\journaled_app\cli.py", line 154
+E             applied = apply_match(db, params, match_ids=match_id or None) if not dry_run else 0
+E             ^^^^^^^
+E         SyntaxError: expected 'except' or 'finally' block
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['D:\\Users\\Conrad\\Documents\\programming\\journaled\\.venv\\Scripts\\python.exe', '-m', 'jour...tch_ids=match_id or None) if not dry_run else 0\n    ^^^^^^^\nSyntaxError: expected \'except\' or \'finally\' block\n').returncode
+
+tests\test_cli_init_db.py:33: AssertionError
+____________________________ test_help_shows_usage ____________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000186CA37F1A0>
+
+    def test_help_shows_usage(run_cli):
+        # Use uv run for CLI invocation per project rules
+        import subprocess
+        cmd = ["uv", "run", "src/journaled_app/cli.py", "--help"]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+>       assert_ok(res)
+
+tests\test_cli_smoke.py:10: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+proc = CompletedProcess(args=['uv', 'run', 'src/journaled_app/cli.py', '--help'], returncode=1, stdout='', stderr='  File "D:...tch_ids=match_id or None) if not dry_run else 0\n    ^^^^^^^\nSyntaxError: expected \'except\' or \'finally\' block\n')
+
+    def assert_ok(proc, *, msg: str = None):
+        """
+        Helper to assert that a subprocess completed successfully.
+        Raises AssertionError with details if the process failed.
+        """
+        # Check if the process result is None (CLI may have failed to launch)
+        # If the process returned a nonzero exit code, raise with details
+        if proc is None:
+            raise AssertionError("Subprocess result is None. The CLI may have failed to launch or returned no result.")
+        if proc.returncode != 0:
+            details = (
+                (msg + "\n") if msg else ""
+            ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
+>           raise AssertionError(details)
+E           AssertionError: Exit code: 1
+E           --- STDOUT ---
+E           
+E           --- STDERR ---
+E             File "D:\Users\Conrad\Documents\programming\journaled\src\journaled_app\cli.py", line 154
+E               applied = apply_match(db, params, match_ids=match_id or None) if not dry_run else 0
+E               ^^^^^^^
+E           SyntaxError: expected 'except' or 'finally' block
+
+tests\conftest.py:59: AssertionError
+______________________________ test_version_flag ______________________________
+
+run_cli = <function run_cli.<locals>._runner at 0x00000186CA37E8E0>
+
+    def test_version_flag(run_cli):
+        # Top-level --version flag should be passed directly
+        # Use uv run for CLI invocation per project rules
+        import subprocess
+        cmd = ["uv", "run", "src/journaled_app/cli.py", "--version"]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+>       assert res.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['uv', 'run', 'src/journaled_app/cli.py', '--version'], returncode=1, stdout='', stderr='  File ...tch_ids=match_id or None) if not dry_run else 0\n    ^^^^^^^\nSyntaxError: expected \'except\' or \'finally\' block\n').returncode
+
+tests\test_cli_smoke.py:20: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_cli_init_db.py::test_init_db_creates_file - AssertionError:...
+FAILED tests/test_cli_init_db.py::test_console_script_help - AssertionError: ...
+FAILED tests/test_cli_smoke.py::test_help_shows_usage - AssertionError: Exit ...
+FAILED tests/test_cli_smoke.py::test_version_flag - AssertionError: assert 1 ...
+======================== 4 failed, 22 passed in 2.59s =========================
+

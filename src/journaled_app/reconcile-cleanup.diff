@@ -1,0 +1,184 @@
+--- a/cli.py
++++ b/cli.py
+@@ -13,6 +13,11 @@
+ from journaled_app.services.reconcile import ReconcileParams, propose_matches, apply_match, unmatch, status
+ from journaled_app.services.import_csv import import_statement_csv
+ from journaled_app.services.import_ofx import import_ofx
++import typer
++from typing import Optional, List
++logger = logger.opt(colors=True)
++app = typer.Typer(no_args_is_help=True)
++
+ 
+ # --- Project root and Alembic config ---
+ PROJECT_ROOT = Path(__file__).resolve().parents[2]  # points to 'journaled/' project root
+@@ -177,6 +182,102 @@
+     finally:
+         db.close()
+ 
++# --- Reconciliation utilities ---
++def _parse_date(label: str, s: str) -> _date:
++    try:
++        return _date.fromisoformat(s)
++    except Exception as e:
++        raise typer.BadParameter(f"{label} must be YYYY-MM-DD, got {s!r}") from e
++
++def _parse_money(label: str, s: str) -> Decimal:
++    try:
++        return Decimal(s)
++    except Exception as e:
++        raise typer.BadParameter(f"{label} must be a decimal number, got {s!r}") from e
++
++def _params_from_cli(account_id: int, period_start: str, period_end: str, amount_tolerance: str, date_window: int) -> ReconcileParams:
++    return ReconcileParams(
++        account_id=account_id,
++        period_start=_parse_date("period-start", period_start),
++        period_end=_parse_date("period-end", period_end),
++        amount_tolerance=_parse_money("amount-tolerance", amount_tolerance),
++        date_window_days=int(date_window),
++    )
++
++# --- Reconciliation commands ---
++@app.command("reconcile-propose")
++def reconcile_propose(
++    account_id: int = typer.Option(..., help="Internal account id to reconcile"),
++    period_start: str = typer.Option(..., help="YYYY-MM-DD inclusive"),
++    period_end: str = typer.Option(..., help="YYYY-MM-DD inclusive"),
++    amount_tolerance: str = typer.Option("0.00", help="Allowed difference when matching amounts"),
++    date_window: int = typer.Option(3, help="Days to search before/after for near-date matches"),
++):
++    """Analyze ledger lines vs splits and propose match candidates."""
++    params = _params_from_cli(account_id, period_start, period_end, amount_tolerance, date_window)
++    db = SessionLocal()
++    try:
++        logger.info(
++            f"Proposing matches for account {params.account_id} from {params.period_start} to {params.period_end} (±{params.date_window_days} days, tol={params.amount_tolerance})"
++        )
++        proposals = propose_matches(db, params)
++        if not proposals:
++            logger.warning("No match proposals found."); return
++        for p in proposals:
++            logger.info(
++                f"proposal line_id={getattr(p, 'line_id', None)} -> split_id={getattr(p, 'split_id', None)} "
++                f"score={getattr(p, 'score', None)} reason={getattr(p, 'reason', None)}"
++            )
++        logger.success(f"Proposed {len(proposals)} match(es).")
++    finally:
++        db.close()
++
++@app.command("reconcile-apply")
++def reconcile_apply(
++    line_id: int = typer.Option(..., help="Statement line id to match"),
++    split_id: int = typer.Option(..., help="Split id to match to"),
++):
++    """Apply a single match linking a statement line to a split."""
++    db = SessionLocal()
++    try:
++        apply_match(db, line_id, split_id)
++        logger.success("Match applied.")
++    finally:
++        db.close()
++
++@app.command("reconcile-unmatch")
++def reconcile_unmatch(
++    line_id: int = typer.Option(..., help="Statement line id to unmatch"),
++):
++    """Remove an existing match for the given statement line."""
++    db = SessionLocal()
++    try:
++        unmatch(db, line_id)
++        logger.success("Unmatched.")
++    finally:
++        db.close()
++
++@app.command("reconcile-status")
++def reconcile_status(
++    account_id: int = typer.Option(..., help="Internal account id to summarize"),
++    period_start: str = typer.Option(..., help="YYYY-MM-DD inclusive"),
++    period_end: str = typer.Option(..., help="YYYY-MM-DD inclusive"),
++    amount_tolerance: str = typer.Option("0.00", help="For completeness"),
++    date_window: int = typer.Option(3, help="For completeness"),
++):
++    """Show a summary of reconciliation status for the window."""
++    params = _params_from_cli(account_id, period_start, period_end, amount_tolerance, date_window)
++    db = SessionLocal()
++    try:
++        s = status(db, params)
++        logger.info(f"Total lines: {getattr(s, 'total_lines', None)}")
++        logger.info(f"Total splits: {getattr(s, 'total_splits', None)}")
++        logger.info(f"Matched pairs: {getattr(s, 'matched_pairs', None)}")
++        logger.info(f"Unmatched lines: {getattr(s, 'unmatched_lines', None)}")
++        logger.info(f"Unmatched splits: {getattr(s, 'unmatched_splits', None)}")
++        logger.info(f"Balance difference: {getattr(s, 'balance_diff', None)}")
++        logger.success("Status OK.")
++    finally:
++        db.close()
++
+@@ -6784,62 +780,0 @@
+-# --- Reconciliation commands ---
+-
+-def cmd_reconcile_propose(args) -> int:
+-    """
+-    Proposes matches between statement lines and splits for a given account and period.
+-    Prints proposed matches with scores and reasons.
+-    """
+-    db = SessionLocal()
+-    try:
+-        params = ReconcileParams(
+-            account_id=args.account_id,
+-            period_start=_date.fromisoformat(args.period_start),
+-            period_end=_date.fromisoformat(args.period_end),
+-            amount_tolerance=Decimal(args.amount_tolerance),
+-            date_window_days=int(args.date_window),
+-        )
+-        proposals = propose_matches(db, params)
+-        for p in proposals:
+-            print(f"line={p.line_id} -> split={p.split_id} score={p.score} reason={p.reason}")
+-    finally:
+-        db.close()
+-    return 0
+-
+-def cmd_reconcile_apply(args) -> int:
+-    """
+-    Applies a proposed match between a statement line and a split.
+-    """
+-    db = SessionLocal()
+-    try:
+-        apply_match(db, args.line_id, args.split_id)
+-        print("ok")
+-    finally:
+-        db.close()
+-    return 0
+-
+-def cmd_reconcile_unmatch(args) -> int:
+-    """
+-    Unmatches a statement line from any split it is currently matched to.
+-    """
+-    db = SessionLocal()
+-    try:
+-        unmatch(db, args.line_id)
+-        print("ok")
+-    finally:
+-        db.close()
+-    return 0
+-
+-def cmd_reconcile_status(args) -> int:
+-    """
+-    Shows reconciliation status for a statement period, including balances and match counts.
+-    """
+-    db = SessionLocal()
+-    try:
+-        params = ReconcileParams(
+-            account_id=args.account_id,
+-            period_start=_date.fromisoformat(args.period_start),
+-            period_end=_date.fromisoformat(args.period_end),
+-            amount_tolerance=Decimal(args.amount_tolerance),
+-            date_window_days=int(args.date_window),
+-        )
+-        s = status(db, params)
+-        print(f"opening={s.opening_bal} closing={s.closing_bal} stmt_delta={s.stmt_delta} "
+-              f"book_delta={s.book_delta} diff={s.difference} "
+-              f"matched_lines={s.matched_lines} unmatched_lines={s.unmatched_lines}")
+-    finally:
+-        db.close()
+-    return 0

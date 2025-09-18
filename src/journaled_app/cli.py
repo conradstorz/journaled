@@ -151,7 +151,7 @@ def reconcile_apply(
 
         # Your service can interpret dry_run or you can just skip commit via transaction management.
         # Here we assume the service supports a dry-run by simply not committing when requested.
-    applied = apply_match(db, params, match_ids=match_id or None) if not dry_run else 0
+        applied = apply_match(db, params, match_ids=match_id or None) if not dry_run else 0
 
         if dry_run:
             # If your service offers a count without commit, swap the line above and report that number here.
@@ -459,7 +459,7 @@ def reconcile_apply(
             params.date_window_days, params.amount_tolerance,
             " [dry-run]" if dry_run else "",
         )
-    applied = 0 if dry_run else apply_match(db, params, match_ids=(match_id or None))
+        applied = 0 if dry_run else apply_match(db, params, match_ids=(match_id or None))
         if dry_run:
             logger.info("Dry run complete. (No changes written.)")
         logger.success("Applied {} match(es).", applied)
