@@ -1,14 +1,10 @@
 from __future__ import annotations
-import sys
-import os
 from datetime import date as _date
-import argparse
 from decimal import Decimal
 from loguru import logger
 from alembic import command
 from alembic.config import Config
 from pathlib import Path
-import argparse
 
 from journaled_app.db import SessionLocal
 from journaled_app.seeds import seed_chart_of_accounts
@@ -30,91 +26,156 @@ def alembic_config() -> Config:
     cfg = Config(str(ALEMBIC_INI))
     return cfg
 
-# --- Alembic migration commands ---
 
-def cmd_init_db(args) -> int:
+@app.command()
+def init_db(db: Optional[str] = typer.Option(None, help="Path to SQLite DB file (overrides DATABASE_URL)")):
     """
-    Applies all Alembic migrations to bring the database schema up to date.
+    Applies Alembic migrations to the database.
     """
-    # If --db argument is provided, set DATABASE_URL before migrations
-    db_path = getattr(args, "db", None)
-    if db_path:
-        os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-        logger.info(f"Set DATABASE_URL to sqlite:///{db_path}")
-    logger.info("Applying migrations to head…")
+    logger.info(f"Applying migrations to DB: {db or 'default'}")
     command.upgrade(alembic_config(), "head")
-    logger.success("Database is up-to-date.")
-    # Seed chart of accounts after migrations
-    db = SessionLocal()
-    try:
-        seed_chart_of_accounts(db)
-    finally:
-        db.close()
-    logger.success("Seeded chart of accounts.")
-    return 0
+    logger.success("Migrations applied.")
 
-def cmd_make_migration(args) -> int:
-    """
-    Creates a new Alembic migration revision, autogenerating changes.
-    """
-    msg = args.message or "auto"
-    logger.info(f"Creating new revision: {msg!r}")
-    command.revision(alembic_config(), message=msg, autogenerate=True)
-    logger.success("Revision created.")
-    return 0
-
-def cmd_downgrade(args) -> int:
-    """
-    Downgrades the database schema by a given number of steps.
-    """
-    steps = args.steps or "1"
-    logger.warning(f"Downgrading by {steps} step(s)…")
-    command.downgrade(alembic_config(), f"-{steps}")
-    logger.success("Downgrade complete.")
-    return 0
-
-# --- Seed chart of accounts ---
-
-def cmd_seed_coa(args) -> int:
+@app.command()
+def seed_coa():
     """
     Seeds the database with a minimal chart of accounts.
     """
-    db = SessionLocal()
+    db_session = SessionLocal()
     try:
-        seed_chart_of_accounts(db)
+        seed_chart_of_accounts(db_session)
     finally:
-        db.close()
-    return 0
+        db_session.close()
+    logger.success("Seeded chart of accounts.")
 
-# --- Transaction reversal ---
+@app.command()
+def rev(message: str = typer.Option("auto", "-m", "--message", help="Revision message")):
+    """
+    Creates a new Alembic migration revision, autogenerating changes.
+    """
+    logger.info(f"Creating new revision: {message!r}")
+    command.revision(alembic_config(), message=message, autogenerate=True)
+    logger.success("Revision created.")
 
-def cmd_reverse_tx(args) -> int:
+@app.command()
+def downgrade(steps: str = typer.Option("1", "-n", "--steps", help="Steps to downgrade (default 1)")):
+    """
+    Downgrades the database schema by a given number of steps.
+    """
+    logger.warning(f"Downgrading by {steps} step(s)…")
+    command.downgrade(alembic_config(), f"-{steps}")
+    logger.success("Downgrade complete.")
+
+@app.command()
+def reverse_tx(
+    tx_id: int = typer.Option(..., help="Transaction ID to reverse"),
+    date: str = typer.Option(None, help="ISO date for reversal (default today)"),
+    memo: str = typer.Option(None, help="Optional description")
+):
     """
     Creates a reversing entry for a given transaction ID.
     Optionally takes a date and memo for the reversal.
     """
     db = SessionLocal()
     try:
-        d = _date.fromisoformat(args.date) if args.date else _date.today()
-        new_id = create_reversing_entry(db, args.tx_id, d, args.memo)
+        d = _date.fromisoformat(date) if date else _date.today()
+        new_id = create_reversing_entry(db, tx_id, d, memo)
         logger.success(f"Reversing transaction created: id={new_id}")
     finally:
         db.close()
-    return 0
 
-# --- Void check ---
-
-def cmd_void_check(args) -> int:
+@app.command()
+def void_check_cmd(
+    check_id: int = typer.Option(..., help="Check ID to void"),
+    date: str = typer.Option(None, help="ISO date for reversal (default today)"),
+    memo: str = typer.Option(None, help="Optional description"),
+    no_reversal: bool = typer.Option(False, help="Do not create a reversing transaction")
+):
     """
     Voids a check by ID and optionally creates a reversing transaction.
     """
     db = SessionLocal()
     try:
-        d = _date.fromisoformat(args.date) if args.date else _date.today()
-        void_check(db, args.check_id, d, args.memo, not args.no_reversal)
+        d = _date.fromisoformat(date) if date else _date.today()
+        void_check(db, check_id, d, memo, not no_reversal)
+        logger.success(f"Check {check_id} voided.{' Reversal created.' if not no_reversal else ''}")
     finally:
         db.close()
-    return 0
+
+@app.command()
+def import_csv(
+    account_id: int = typer.Option(..., help="Account ID"),
+    period_start: str = typer.Option(..., help="YYYY-MM-DD"),
+    period_end: str = typer.Option(..., help="YYYY-MM-DD"),
+    opening: str = typer.Option(..., help="Opening balance"),
+    closing: str = typer.Option(..., help="Closing balance"),
+    csv: str = typer.Option(..., help="Path to CSV file"),
+    no_header: bool = typer.Option(False, help="CSV has no header row"),
+    date_format: str = typer.Option("%Y-%m-%d", help="Python strptime format for dates"),
+    date_col: str = typer.Option("date", help="Date column name"),
+    amount_col: str = typer.Option("amount", help="Amount column name"),
+    desc_col: str = typer.Option("description", help="Description column name"),
+    fitid_col: str = typer.Option("fitid", help="FITID column name")
+):
+    """
+    Imports a bank statement from a CSV file into statement_lines.
+    Creates or finds the corresponding Statement.
+    """
+    db = SessionLocal()
+    try:
+        period_start_dt = _date.fromisoformat(period_start)
+        period_end_dt = _date.fromisoformat(period_end)
+        opening_dec = Decimal(opening)
+        closing_dec = Decimal(closing)
+        created_stmt_id, line_count = import_statement_csv(
+            db=db,
+            account_id=account_id,
+            period_start=period_start_dt,
+            period_end=period_end_dt,
+            opening_bal=opening_dec,
+            closing_bal=closing_dec,
+            csv_path=csv,
+            date_format=date_format,
+            has_header=(not no_header),
+            date_col=date_col,
+            amount_col=amount_col,
+            desc_col=desc_col,
+            fitid_col=fitid_col,
+        )
+        logger.success(f"Imported {line_count} lines into statement id={created_stmt_id}")
+    finally:
+        db.close()
+
+@app.command()
+def import_ofx(
+    account_id: int = typer.Option(..., help="Account ID"),
+    period_start: str = typer.Option(..., help="YYYY-MM-DD"),
+    period_end: str = typer.Option(..., help="YYYY-MM-DD"),
+    opening: str = typer.Option(..., help="Opening balance"),
+    closing: str = typer.Option(..., help="Closing balance"),
+    ofx: str = typer.Option(..., help="Path to OFX/QFX file")
+):
+    """
+    Imports a bank statement from an OFX/QFX file into statement_lines.
+    """
+    db = SessionLocal()
+    try:
+        period_start_dt = _date.fromisoformat(period_start)
+        period_end_dt = _date.fromisoformat(period_end)
+        opening_dec = Decimal(opening)
+        closing_dec = Decimal(closing)
+        stmt_id, count = import_ofx(
+            db=db,
+            account_id=account_id,
+            period_start=period_start_dt,
+            period_end=period_end_dt,
+            opening_bal=opening_dec,
+            closing_bal=closing_dec,
+            ofx_path=ofx,
+        )
+        logger.success(f"Imported {count} lines into statement id={stmt_id}")
+    finally:
+        db.close()
 
 # --- Reconciliation commands ---
 
@@ -183,168 +244,3 @@ def cmd_reconcile_status(args) -> int:
     finally:
         db.close()
     return 0
-
-# --- CSV import command ---
-
-def cmd_import_csv(args) -> int:
-    """
-    Imports a bank statement from a CSV file into statement_lines.
-    Creates or finds the corresponding Statement.
-    """
-    db = SessionLocal()
-    try:
-        period_start = _date.fromisoformat(args.period_start)
-        period_end = _date.fromisoformat(args.period_end)
-        opening = Decimal(args.opening)
-        closing = Decimal(args.closing)
-        created_stmt_id, line_count = import_statement_csv(
-            db=db,
-            account_id=args.account_id,
-            period_start=period_start,
-            period_end=period_end,
-            opening_bal=opening,
-            closing_bal=closing,
-            csv_path=args.csv,
-            date_format=args.date_format,
-            has_header=(not args.no_header),
-            date_col=args.date_col,
-            amount_col=args.amount_col,
-            desc_col=args.desc_col,
-            fitid_col=args.fitid_col,
-        )
-        logger.success(f"Imported {line_count} lines into statement id={created_stmt_id}")
-    finally:
-        db.close()
-    return 0
-
-# --- OFX/QFX import command ---
-
-def cmd_import_ofx(args) -> int:
-    """
-    Imports a bank statement from an OFX/QFX file into statement_lines.
-    """
-    db = SessionLocal()
-    try:
-        period_start = _date.fromisoformat(args.period_start)
-        period_end = _date.fromisoformat(args.period_end)
-        opening = Decimal(args.opening)
-        closing = Decimal(args.closing)
-        stmt_id, count = import_ofx(
-            db=db,
-            account_id=args.account_id,
-            period_start=period_start,
-            period_end=period_end,
-            opening_bal=opening,
-            closing_bal=closing,
-            ofx_path=args.ofx,
-        )
-        logger.success(f"Imported {count} lines into statement id={stmt_id}")
-    finally:
-        db.close()
-    return 0
-
-# --- Main CLI entrypoint and argument parsing ---
-
-def main(argv: list[str] | None = None) -> int:
-    """
-    Main entrypoint for the CLI.
-    Sets up argument parsing and dispatches to the appropriate command handler.
-    """
-    parser = argparse.ArgumentParser(
-        prog="journaled-dev",
-        description="Journaled dev utilities"
-    )
-    parser.add_argument('--version', action='version', version='journaled-dev 1.0.0')
-    sub = parser.add_subparsers(dest="cmd", required=True)
-
-    # --- Migration & DB commands ---
-    p1 = sub.add_parser("init-db", help="Apply Alembic migrations to head")
-    p1.add_argument("--db", type=str, help="Path to SQLite DB file to use (overrides DATABASE_URL)")
-    p1.set_defaults(func=cmd_init_db)
-
-    p2 = sub.add_parser("rev", help="Create a new Alembic revision (autogenerate)")
-    p2.add_argument("-m", "--message", help="Revision message")
-    p2.set_defaults(func=cmd_make_migration)
-
-    p3 = sub.add_parser("downgrade", help="Downgrade Alembic by N steps")
-    p3.add_argument("-n", "--steps", help="Steps to downgrade (default 1)")
-    p3.set_defaults(func=cmd_downgrade)
-
-    p4 = sub.add_parser("seed-coa", help="Insert minimal chart of accounts")
-    p4.set_defaults(func=cmd_seed_coa)
-
-    # --- Transaction & Check commands ---
-    p5 = sub.add_parser("reverse-tx", help="Create reversing entry for a transaction id")
-    p5.add_argument("--tx-id", type=int, required=True)
-    p5.add_argument("--date", help="ISO date for reversal (default today)")
-    p5.add_argument("--memo", help="Optional description")
-    p5.set_defaults(func=cmd_reverse_tx)
-
-    p6 = sub.add_parser("void-check", help="Void a check (by id) and optionally create a reversing entry")
-    p6.add_argument("--check-id", type=int, required=True)
-    p6.add_argument("--date", help="ISO date for reversal (default today)")
-    p6.add_argument("--memo", help="Optional description")
-    p6.add_argument("--no-reversal", action="store_true", help="Do not create a reversing transaction")
-    p6.set_defaults(func=cmd_void_check)
-
-    # --- Reconciliation commands ---
-    p7 = sub.add_parser("reconcile-propose", help="Propose matches for a statement period")
-    p7.add_argument("--account-id", type=int, required=True)
-    p7.add_argument("--period-start", required=True)
-    p7.add_argument("--period-end", required=True)
-    p7.add_argument("--amount-tolerance", default="0.01")
-    p7.add_argument("--date-window", default="3")
-    p7.set_defaults(func=cmd_reconcile_propose)
-
-    p8 = sub.add_parser("reconcile-apply", help="Apply a match: line -> split")
-    p8.add_argument("--line-id", type=int, required=True)
-    p8.add_argument("--split-id", type=int, required=True)
-    p8.set_defaults(func=cmd_reconcile_apply)
-
-    p9 = sub.add_parser("reconcile-unmatch", help="Unmatch a statement line")
-    p9.add_argument("--line-id", type=int, required=True)
-    p9.set_defaults(func=cmd_reconcile_unmatch)
-
-    p10 = sub.add_parser("reconcile-status", help="Show reconciliation status for a statement")
-    p10.add_argument("--account-id", type=int, required=True)
-    p10.add_argument("--period-start", required=True)
-    p10.add_argument("--period-end", required=True)
-    p10.add_argument("--amount-tolerance", default="0.01")
-    p10.add_argument("--date-window", default="3")
-    p10.set_defaults(func=cmd_reconcile_status)
-
-    # --- Import commands ---
-    p11 = sub.add_parser("import-csv", help="Import a bank CSV into statement_lines (creates/finds Statement)")
-    p11.add_argument("--account-id", type=int, required=True)
-    p11.add_argument("--period-start", required=True, help="YYYY-MM-DD")
-    p11.add_argument("--period-end", required=True, help="YYYY-MM-DD")
-    p11.add_argument("--opening", required=True, help="Opening balance for the statement")
-    p11.add_argument("--closing", required=True, help="Closing balance for the statement")
-    p11.add_argument("--csv", required=True, help="Path to CSV file")
-    p11.add_argument("--no-header", action="store_true", help="CSV has no header row")
-    p11.add_argument("--date-format", default="%Y-%m-%d", help="Python strptime format for dates")
-    p11.add_argument("--date-col", default="date")
-    p11.add_argument("--amount-col", default="amount")
-    p11.add_argument("--desc-col", default="description")
-    p11.add_argument("--fitid-col", default="fitid")
-    p11.set_defaults(func=cmd_import_csv)
-
-    p12 = sub.add_parser("import-ofx", help="Import an OFX/QFX file into statement_lines")
-    p12.add_argument("--account-id", type=int, required=True)
-    p12.add_argument("--period-start", required=True, help="YYYY-MM-DD")
-    p12.add_argument("--period-end", required=True, help="YYYY-MM-DD")
-    p12.add_argument("--opening", required=True, help="Opening balance for the statement")
-    p12.add_argument("--closing", required=True, help="Closing balance for the statement")
-    p12.add_argument("--ofx", required=True, help="Path to OFX/QFX file")
-    p12.set_defaults(func=cmd_import_ofx)
-
-    # --- Parse arguments and dispatch ---
-    args = parser.parse_args(argv or sys.argv[1:])
-    return args.func(args)
-
-if __name__ == "__main__":
-    # Entrypoint for running as a script
-    raise SystemExit(main())
-
-
-
