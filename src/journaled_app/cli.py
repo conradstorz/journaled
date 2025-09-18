@@ -36,6 +36,11 @@ def cmd_init_db(args) -> int:
     """
     Applies all Alembic migrations to bring the database schema up to date.
     """
+    # If --db argument is provided, set DATABASE_URL before migrations
+    db_path = getattr(args, "db", None)
+    if db_path:
+        os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+        logger.info(f"Set DATABASE_URL to sqlite:///{db_path}")
     logger.info("Applying migrations to head…")
     command.upgrade(alembic_config(), "head")
     logger.success("Database is up-to-date.")
@@ -245,12 +250,16 @@ def main(argv: list[str] | None = None) -> int:
     Main entrypoint for the CLI.
     Sets up argument parsing and dispatches to the appropriate command handler.
     """
-    parser = argparse.ArgumentParser(prog="journaled-dev", description="Journaled dev utilities")
+    parser = argparse.ArgumentParser(
+        prog="journaled-dev",
+        description="Journaled dev utilities"
+    )
     parser.add_argument('--version', action='version', version='journaled-dev 1.0.0')
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    # Migration commands
+    # --- Migration & DB commands ---
     p1 = sub.add_parser("init-db", help="Apply Alembic migrations to head")
+    p1.add_argument("--db", type=str, help="Path to SQLite DB file to use (overrides DATABASE_URL)")
     p1.set_defaults(func=cmd_init_db)
 
     p2 = sub.add_parser("rev", help="Create a new Alembic revision (autogenerate)")
@@ -261,18 +270,16 @@ def main(argv: list[str] | None = None) -> int:
     p3.add_argument("-n", "--steps", help="Steps to downgrade (default 1)")
     p3.set_defaults(func=cmd_downgrade)
 
-    # Seed chart of accounts
     p4 = sub.add_parser("seed-coa", help="Insert minimal chart of accounts")
     p4.set_defaults(func=cmd_seed_coa)
 
-    # Transaction reversal
+    # --- Transaction & Check commands ---
     p5 = sub.add_parser("reverse-tx", help="Create reversing entry for a transaction id")
     p5.add_argument("--tx-id", type=int, required=True)
     p5.add_argument("--date", help="ISO date for reversal (default today)")
     p5.add_argument("--memo", help="Optional description")
     p5.set_defaults(func=cmd_reverse_tx)
 
-    # Void check
     p6 = sub.add_parser("void-check", help="Void a check (by id) and optionally create a reversing entry")
     p6.add_argument("--check-id", type=int, required=True)
     p6.add_argument("--date", help="ISO date for reversal (default today)")
@@ -280,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
     p6.add_argument("--no-reversal", action="store_true", help="Do not create a reversing transaction")
     p6.set_defaults(func=cmd_void_check)
 
-    # Reconciliation commands
+    # --- Reconciliation commands ---
     p7 = sub.add_parser("reconcile-propose", help="Propose matches for a statement period")
     p7.add_argument("--account-id", type=int, required=True)
     p7.add_argument("--period-start", required=True)
@@ -306,7 +313,7 @@ def main(argv: list[str] | None = None) -> int:
     p10.add_argument("--date-window", default="3")
     p10.set_defaults(func=cmd_reconcile_status)
 
-    # Import CSV
+    # --- Import commands ---
     p11 = sub.add_parser("import-csv", help="Import a bank CSV into statement_lines (creates/finds Statement)")
     p11.add_argument("--account-id", type=int, required=True)
     p11.add_argument("--period-start", required=True, help="YYYY-MM-DD")
@@ -322,7 +329,6 @@ def main(argv: list[str] | None = None) -> int:
     p11.add_argument("--fitid-col", default="fitid")
     p11.set_defaults(func=cmd_import_csv)
 
-    # Import OFX/QFX
     p12 = sub.add_parser("import-ofx", help="Import an OFX/QFX file into statement_lines")
     p12.add_argument("--account-id", type=int, required=True)
     p12.add_argument("--period-start", required=True, help="YYYY-MM-DD")
@@ -332,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     p12.add_argument("--ofx", required=True, help="Path to OFX/QFX file")
     p12.set_defaults(func=cmd_import_ofx)
 
-    # Parse arguments and dispatch to the selected command
+    # --- Parse arguments and dispatch ---
     args = parser.parse_args(argv or sys.argv[1:])
     return args.func(args)
 

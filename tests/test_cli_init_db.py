@@ -8,7 +8,7 @@ def test_init_db_creates_file(run_cli):
     from pathlib import Path
     project_root = Path(__file__).parent.parent
     db = project_root / "test.db"
-    res = run_cli("init-db", cwd=project_root)
+    res = run_cli("init-db", "--db", str(db), cwd=project_root)
     assert res is not None, "Subprocess result is None. CLI may have failed to launch."
     assert_ok(res)
     if not db.exists():

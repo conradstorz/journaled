@@ -65,24 +65,31 @@ def pytest_configure():
     Creates the canonical test DB and applies all Alembic migrations.
     Sets DATABASE_URL to point to the canonical DB.
     """
+    import time
     # Remove any previous canonical test DB to start fresh
     if CANONICAL_DB_PATH.exists():
-        CANONICAL_DB_PATH.unlink()  # Remove any previous test DB
-    from sqlalchemy import create_engine
-    # Create a new SQLAlchemy engine for the canonical DB
-    engine = create_engine(CANONICAL_DB_URL, future=True)
-    from alembic.config import Config
-    from alembic import command
-    # Load Alembic config from the project root
-    alembic_cfg = Config(str(PROJECT_ROOT / "alembic.ini"))
-    # Set the DB URL for Alembic migrations
-    alembic_cfg.set_main_option("sqlalchemy.url", CANONICAL_DB_URL)
-    # Run all migrations to bring schema up to date
-    command.upgrade(alembic_cfg, "head")
-    # Dispose the engine to release resources
-    engine.dispose()
-    # Set DATABASE_URL env var for use in tests
-    os.environ["DATABASE_URL"] = str(CANONICAL_DB_URL)
+        try:
+            CANONICAL_DB_PATH.unlink()
+        except Exception as e:
+            logger.error(f"Failed to remove old canonical DB: {e}")
+            raise
+    # Try to create and migrate the canonical DB
+    try:
+        from sqlalchemy import create_engine
+        engine = create_engine(CANONICAL_DB_URL, future=True)
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config(str(PROJECT_ROOT / "alembic.ini"))
+        alembic_cfg.set_main_option("sqlalchemy.url", CANONICAL_DB_URL)
+        command.upgrade(alembic_cfg, "head")
+        # Optional: delay to ensure migrations complete (for slow FS or concurrent runs)
+        time.sleep(1)
+        engine.dispose()
+        os.environ["DATABASE_URL"] = str(CANONICAL_DB_URL)
+        logger.info(f"Canonical test DB created and migrated: {CANONICAL_DB_PATH}")
+    except Exception as e:
+        logger.error(f"Failed to create or migrate canonical test DB: {e}")
+        raise
 
 def _merge_env(extra: Mapping[str, str] | None = None) -> dict[str, str]:
     """
@@ -210,28 +217,40 @@ def cloned_test_db():
     """
     Clone the canonical test DB for each test, set DATABASE_URL, and clean up after.
     """
+    import time
+    # Wait for canonical DB to exist (in case of slow creation)
+    max_wait = 5
+    waited = 0
+    while not CANONICAL_DB_PATH.exists() and waited < max_wait:
+        logger.warning(f"Waiting for canonical DB to be created...")
+        time.sleep(1)
+        waited += 1
+    if not CANONICAL_DB_PATH.exists():
+        raise FileNotFoundError(f"Canonical test DB not found after waiting {max_wait} seconds: {CANONICAL_DB_PATH}")
     # Generate a unique temp file path for the cloned DB
     clone_path = Path(tempfile.gettempdir()) / f"test_clone_{uuid.uuid4().hex}.db"
-    # Copy the canonical DB to the clone path
-    shutil.copy(CANONICAL_DB_PATH, clone_path)
+    try:
+        shutil.copy(CANONICAL_DB_PATH, clone_path)
+    except Exception as e:
+        logger.error(f"Failed to clone canonical DB: {e}")
+        raise
     # Build the DB URL for the clone
     url = f"sqlite:///{clone_path}"
-    # Set DATABASE_URL for the test
     os.environ["DATABASE_URL"] = url
     logger.info(f"Cloned test DB for test: {clone_path}")
-    # Create SQLAlchemy engine and session for the clone
     engine = create_engine(url, future=True)
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     db = SessionLocal()
     try:
-        # Yield the session to the test
         yield db
     finally:
-        # Cleanup: close session, dispose engine, delete temp DB file
         db.close()
         engine.dispose()
         if clone_path.exists():
-            clone_path.unlink()
+            try:
+                clone_path.unlink()
+            except Exception as e:
+                logger.warning(f"Failed to delete cloned test DB: {e}")
 
 @pytest.fixture(autouse=True, scope='session')
 def silence_sqlalchemy_logging():
