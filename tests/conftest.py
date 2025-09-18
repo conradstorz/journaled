@@ -1,39 +1,55 @@
-# Canonical test DB path (project root)
+
 # tests/conftest.py
 """
-Pytest fixtures for running your CLI from tests, correctly, under `uv run`.
+Pytest fixtures and helpers for reliable, isolated testing of the Journaled CLI and database.
 
-- `run_cli()` runs `python -m journaled_app.cli ...` with the SAME interpreter
-  pytest is using (the one uv bootstrapped).
-- `cli_bin()` resolves the console-script shim (if you want to test the
-    installed entry point named `journaled`).
-- `temp_workdir` gives an isolated CWD.
+Key features:
+- Creates a canonical test database and runs Alembic migrations ONCE per test session.
+- Clones the canonical DB for each test, ensuring isolation and repeatability.
+- Provides helpers to run CLI commands as subprocesses with correct environment.
+- Silences noisy SQLAlchemy logging for cleaner test output.
 """
 
+
+# Import future annotations for type hints
 from __future__ import annotations
 
-import os
-import sys
-import shutil
-import subprocess
-from pathlib import Path
-from typing import Iterable, Mapping
+# Standard library imports
+import os  # For environment variables and file operations
+import sys  # For Python interpreter path
+import shutil  # For file copying and removal
+import subprocess  # For running CLI commands as subprocesses
+from pathlib import Path  # For filesystem path manipulations
+from typing import Iterable, Mapping  # For type hints
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from alembic import command
-from alembic.config import Config
-import logging
-from loguru import logger
-import pytest
+# SQLAlchemy and Alembic imports for DB and migrations
+from sqlalchemy import create_engine  # For creating DB engine
+from sqlalchemy.orm import sessionmaker  # For session factory
+from alembic import command  # For running Alembic migrations
+from alembic.config import Config  # For Alembic config
+import logging  # For controlling log output
+from loguru import logger  # For structured logging
+import pytest  # For pytest fixtures
 
 
+
+# Project root and canonical test DB setup
+
+# Get the project root directory (one level up from tests/)
 PROJECT_ROOT = Path(__file__).parent.parent
+# Define the path for the canonical test DB (created once per session)
 CANONICAL_DB_PATH = PROJECT_ROOT / "test_canonical.db"
+# Build the SQLAlchemy URL for the canonical DB
 CANONICAL_DB_URL = f"sqlite:///{CANONICAL_DB_PATH}"
 
 # Helper to assert subprocess success
 def assert_ok(proc, *, msg: str = None):
+    """
+    Helper to assert that a subprocess completed successfully.
+    Raises AssertionError with details if the process failed.
+    """
+    # Check if the process result is None (CLI may have failed to launch)
+    # If the process returned a nonzero exit code, raise with details
     if proc is None:
         raise AssertionError("Subprocess result is None. The CLI may have failed to launch or returned no result.")
     if proc.returncode != 0:
@@ -44,29 +60,60 @@ def assert_ok(proc, *, msg: str = None):
 
 
 def pytest_configure():
-    # Create canonical DB and run migrations ONCE
+    """
+    Pytest hook: runs once per test session.
+    Creates the canonical test DB and applies all Alembic migrations.
+    Sets DATABASE_URL to point to the canonical DB.
+    """
+    # Remove any previous canonical test DB to start fresh
     if CANONICAL_DB_PATH.exists():
-        CANONICAL_DB_PATH.unlink()
+        CANONICAL_DB_PATH.unlink()  # Remove any previous test DB
     from sqlalchemy import create_engine
+    # Create a new SQLAlchemy engine for the canonical DB
     engine = create_engine(CANONICAL_DB_URL, future=True)
     from alembic.config import Config
     from alembic import command
+    # Load Alembic config from the project root
     alembic_cfg = Config(str(PROJECT_ROOT / "alembic.ini"))
+    # Set the DB URL for Alembic migrations
     alembic_cfg.set_main_option("sqlalchemy.url", CANONICAL_DB_URL)
+    # Run all migrations to bring schema up to date
     command.upgrade(alembic_cfg, "head")
+    # Dispose the engine to release resources
     engine.dispose()
+    # Set DATABASE_URL env var for use in tests
     os.environ["DATABASE_URL"] = str(CANONICAL_DB_URL)
 
 def _merge_env(extra: Mapping[str, str] | None = None) -> dict[str, str]:
-    """Return a copy of os.environ with optional overrides."""
+    """
+    Helper to merge environment variables for subprocesses.
+    Returns a copy of os.environ with optional overrides.
+
+    Parameters:
+    - extra: An optional Mapping (like a dict) of environment variable names (str) to values (str).
+      If provided, these will override or add to the current environment.
+
+    Returns:
+    - A dictionary containing the merged environment variables.
+    """
+    # Copy current environment variables from the OS
     env = os.environ.copy()
+    # If 'extra' is provided and is not None or empty, update 'env' with its key-value pairs.
+    # This means any variable in 'extra' will override the same variable in 'env', or add new ones.
     if extra:
         env.update(extra)
+    # Return the merged environment dictionary
     return env
 
 
 @pytest.fixture
 def run_cli():
+    """
+    Fixture to run the Journaled CLI as a Python module.
+    Ensures correct interpreter and PYTHONPATH for subprocesses.
+    Returns a function that runs the CLI and returns the CompletedProcess.
+    """
+    # Define the runner function for CLI commands
     """
     Run your CLI as a Python module to avoid PATH/console-script issues.
 
@@ -83,12 +130,16 @@ def run_cli():
         check: bool = False,                      # set True to raise on nonzero exit
         input_text: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
+        # Build the CLI command as a Python module
         cmd: list[str] = [sys.executable, "-m", module, *args]
+        # Merge environment variables
         merged_env = _merge_env(env)
-        # Ensure PYTHONPATH includes src directory
+        # Ensure PYTHONPATH includes src directory for imports
         src_path = str(Path(__file__).parent.parent / "src")
         merged_env["PYTHONPATH"] = src_path + os.pathsep + merged_env.get("PYTHONPATH", "")
+        # Print the command and environment for debugging
         print(f"Running CLI command: {cmd}\nCWD: {cwd}\nENV: {merged_env}")
+        # Run the subprocess and capture output
         result = subprocess.run(
             cmd,
             cwd=str(cwd) if cwd else None,
@@ -97,9 +148,11 @@ def run_cli():
             capture_output=True,
             text=True,
             timeout=timeout,
-            check=False,  # we raise manually so we can include stdout on failure
+            check=False,  # Manual error handling below
         )
+        # Print the result for debugging
         print(f"Subprocess result: {result}")
+        # Raise error if check=True and process failed
         if check and result.returncode != 0:
             raise AssertionError(
                 f"CLI exited with {result.returncode}\n"
@@ -107,12 +160,19 @@ def run_cli():
                 f"--- STDOUT ---\n{result.stdout}\n"
                 f"--- STDERR ---\n{result.stderr}\n"
             )
+        # Return the CompletedProcess result
         return result
+    # Return the runner function as the fixture value
     return _runner
 
 
 
 def _migrate(url: str) -> None:
+    """
+    Helper to run Alembic migrations for a given DB URL.
+    Used for manual migration in tests if needed.
+    """
+    # Log migration start
     logger.info(f"Starting Alembic migration for DB URL: {url}")
     try:
         cfg = Config("alembic.ini")
@@ -140,19 +200,34 @@ from sqlalchemy.orm import sessionmaker
 @pytest.fixture(scope="function")
 def cloned_test_db():
     """
+    Fixture to provide a fresh, isolated test DB for each test function.
+    - Clones the canonical DB to a temp file
+    - Sets DATABASE_URL to the clone
+    - Yields a SQLAlchemy session
+    - Cleans up the DB file after the test
+    """
+    # Generate a unique temp file path for the cloned DB
+    """
     Clone the canonical test DB for each test, set DATABASE_URL, and clean up after.
     """
+    # Generate a unique temp file path for the cloned DB
     clone_path = Path(tempfile.gettempdir()) / f"test_clone_{uuid.uuid4().hex}.db"
+    # Copy the canonical DB to the clone path
     shutil.copy(CANONICAL_DB_PATH, clone_path)
+    # Build the DB URL for the clone
     url = f"sqlite:///{clone_path}"
+    # Set DATABASE_URL for the test
     os.environ["DATABASE_URL"] = url
     logger.info(f"Cloned test DB for test: {clone_path}")
+    # Create SQLAlchemy engine and session for the clone
     engine = create_engine(url, future=True)
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     db = SessionLocal()
     try:
+        # Yield the session to the test
         yield db
     finally:
+        # Cleanup: close session, dispose engine, delete temp DB file
         db.close()
         engine.dispose()
         if clone_path.exists():
@@ -160,4 +235,12 @@ def cloned_test_db():
 
 @pytest.fixture(autouse=True, scope='session')
 def silence_sqlalchemy_logging():
+    """
+    Fixture to silence SQLAlchemy logging for cleaner test output.
+    Automatically applied to all tests in the session.
+    """
+    # Set SQLAlchemy logger to CRITICAL to suppress output
     logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
+
+# End of tests/conftest.py
+
