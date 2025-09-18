@@ -8,6 +8,7 @@ Never make a breaking change to a function without authorization.
 # Update as needed to guide coding style, conventions, and preferences.
 
 - Always use type hints in Python code.
+- F-Strings everywhere.
 - Prefer pathlib over os.path for file operations.
 - Use pytest for all new tests.
 - Follow PEP8 formatting.
