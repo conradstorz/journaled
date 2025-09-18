@@ -28,8 +28,10 @@ def test_cli_init_db_creates_schema():
     logger.debug(f"DB path: {db_path}")
     logger.debug(f"Environment: {env}")
 
+    # Use uv run for CLI invocation per project rules
+    cmd = ["uv", "run", "src/journaled_app/cli.py", "init-db"]
     result = subprocess.run(
-        ['uv', 'run', 'src/journaled_app/cli.py', 'init-db'],
+        cmd,
         env=env,
         capture_output=True,
         text=True

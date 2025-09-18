@@ -8,7 +8,10 @@ def test_init_db_creates_file(run_cli):
     from pathlib import Path
     project_root = Path(__file__).parent.parent
     db = project_root / "test.db"
-    res = run_cli("init-db", "--db", str(db), cwd=project_root)
+    # Use uv run for CLI invocation per project rules
+    import subprocess
+    cmd = ["uv", "run", "src/journaled_app/cli.py", "init-db", "--db", str(db)]
+    res = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
     assert res is not None, "Subprocess result is None. CLI may have failed to launch."
     assert_ok(res)
     if not db.exists():
