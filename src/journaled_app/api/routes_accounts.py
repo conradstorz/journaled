@@ -5,13 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from journaled_app.models import Account, AccountType, Split
-from journaled_app.api.deps import get_db
+from journaled_app.api.deps import get_db, get_current_active_user
+from journaled_app.models import User
 from journaled_app.schemas import AccountCreate, AccountRead
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 @router.get("/", response_model=List[AccountRead])
-def list_accounts(db: Session = Depends(get_db)) -> List[Account]:
+def list_accounts(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> List[Account]:
     from sqlalchemy import func
     stmt = select(Account).order_by(Account.type, Account.name)
     accounts = db.execute(stmt).scalars().all()
@@ -30,7 +31,7 @@ def list_accounts(db: Session = Depends(get_db)) -> List[Account]:
     return result
 
 @router.post("/", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
-def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> Account:
+def create_account(payload: AccountCreate, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> Account:
     # Ensure name unique
     exists = db.execute(select(Account).where(Account.name == payload.name)).scalar_one_or_none()
     if exists:
@@ -59,7 +60,7 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> Acc
     return acct
 
 @router.delete("/{account_id}", status_code=204)
-def delete_account(account_id: int, db: Session = Depends(get_db)):
+def delete_account(account_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     from sqlalchemy import func
     acct = db.get(Account, account_id)
     if not acct:

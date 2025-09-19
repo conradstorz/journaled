@@ -169,11 +169,11 @@ def reconcile_apply(
 
         # Your service can interpret dry_run or you can just skip commit via transaction management.
         # Here we assume the service supports a dry-run by simply not committing when requested.
-        applied = apply_match(db, params, match_ids=match_id or None) if not dry_run else 0
-
         if dry_run:
-            # If your service offers a count without commit, swap the line above and report that number here.
+            applied = 0
             logger.info("Dry run complete. (No changes written.)")
+        else:
+            applied = apply_match(db, params, match_ids=match_id or None)
         logger.success("Applied {} match(es).", applied)
     finally:
         db.close()
@@ -328,6 +328,18 @@ def seed_coa(
 @app.command()
 def init_db(db: Optional[str] = typer.Option(None, help="DB URL or SQLite path (overrides alembic.ini)")):
     logger.info(f"Applying migrations to DB: {db or 'alembic.ini setting'}")
+    # If db is a SQLite file path, ensure the file is created by connecting
+    db_url = db
+    if db and (db.startswith("sqlite:///") or db.endswith(".db")):
+        # Normalize to URL if needed
+        if not db.startswith("sqlite:///"):
+            db_url = f"sqlite:///{db}"
+        from sqlalchemy import create_engine
+        engine = create_engine(db_url, future=True)
+        # Connect to create the file
+        with engine.connect():
+            pass
+        engine.dispose()
     command.upgrade(alembic_config(db), "head")
     logger.success("Migrations applied.")
 
@@ -464,9 +476,11 @@ def reconcile_apply(
             params.date_window_days, params.amount_tolerance,
             " [dry-run]" if dry_run else "",
         )
-        applied = 0 if dry_run else apply_match(db, params, match_ids=(match_id or None))
         if dry_run:
+            applied = 0
             logger.info("Dry run complete. (No changes written.)")
+        else:
+            applied = apply_match(db, params, match_ids=(match_id or None))
         logger.success("Applied {} match(es).", applied)
     finally:
         db.close()
