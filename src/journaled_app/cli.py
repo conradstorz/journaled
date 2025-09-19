@@ -32,7 +32,26 @@ logger = logger.opt(colors=True)
 app = typer.Typer(no_args_is_help=True)
 
 @app.callback()
-def _banner():
+def _banner(
+    ctx: typer.Context,
+    version: bool = typer.Option(
+        False,
+        "--version",
+        help="Show the CLI version and exit",
+        is_eager=True,
+    ),
+):
+    logger.info(f"Callback triggered. version={version}")
+    if version:
+        try:
+            import importlib.metadata
+            v = importlib.metadata.version("journaled-app")
+            logger.info(f"Version lookup succeeded: {v}")
+        except Exception as e:
+            logger.error(f"Version lookup failed: {e}")
+            v = "unknown"
+        typer.echo(f"Journaled CLI version: {v}")
+        raise typer.Exit()
     logger.info("Journaled CLI starting up…")
 
 # ---- Alembic ini discovery + config ----
@@ -78,7 +97,6 @@ def _params_from_cli(
         amount_tolerance=_parse_money("amount-tolerance", amount_tolerance),
         date_window_days=int(date_window),
     )
-
 
 # -------------------------
 # reconcile-propose
@@ -160,7 +178,6 @@ def reconcile_apply(
     finally:
         db.close()
 
-
 # -------------------------
 # reconcile-unmatch
 # -------------------------
@@ -210,7 +227,6 @@ def reconcile_unmatch(
             logger.success("Removed {} match(es).", count)
     finally:
         db.close()
-
 
 # -------------------------
 # reconcile-status
@@ -309,8 +325,6 @@ def seed_coa(
     finally:
         sess.close()
 
-
-
 @app.command()
 def init_db(db: Optional[str] = typer.Option(None, help="DB URL or SQLite path (overrides alembic.ini)")):
     logger.info(f"Applying migrations to DB: {db or 'alembic.ini setting'}")
@@ -364,7 +378,6 @@ def void_check(
     finally:
         db.close()
 
-
 @app.command()
 def import_csv(
     account_id: int = typer.Option(..., help="Account ID"),
@@ -405,7 +418,6 @@ def import_csv(
     finally:
         db.close()
 
-
 @app.command("import-ofx")
 def import_ofx_cmd(
     account_id: int = typer.Option(..., help="Account ID"),
@@ -433,13 +445,6 @@ def import_ofx_cmd(
         logger.success(f"Imported {count} lines into statement id={stmt_id}")
     finally:
         db.close()
-
-
-# --- Reconciliation commands ---
-
-
-
-
 @app.command("reconcile-apply")
 def reconcile_apply(
     account_id: int = typer.Option(..., help="Internal account id to reconcile"),
@@ -465,7 +470,6 @@ def reconcile_apply(
         logger.success("Applied {} match(es).", applied)
     finally:
         db.close()
-
 
 @app.command("reconcile-unmatch")
 def reconcile_unmatch(
@@ -498,7 +502,6 @@ def reconcile_unmatch(
             logger.success("Removed {} match(es).", count)
     finally:
         db.close()
-
 
 @app.command("reconcile-status")
 def reconcile_status(

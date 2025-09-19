@@ -43,20 +43,25 @@ CANONICAL_DB_PATH = PROJECT_ROOT / "test_canonical.db"
 CANONICAL_DB_URL = f"sqlite:///{CANONICAL_DB_PATH}"
 
 # Helper to assert subprocess success
-def assert_ok(proc, *, msg: str = None):
+def assert_ok(proc, *, msg: str = None, cmd: list = None):
     """
     Helper to assert that a subprocess completed successfully.
-    Raises AssertionError with details if the process failed.
+    Raises AssertionError with detailed output if the process failed.
     """
-    # Check if the process result is None (CLI may have failed to launch)
-    # If the process returned a nonzero exit code, raise with details
     if proc is None:
         raise AssertionError("Subprocess result is None. The CLI may have failed to launch or returned no result.")
     if proc.returncode != 0:
-        details = (
-            (msg + "\n") if msg else ""
-        ) + f"Exit code: {proc.returncode}\n--- STDOUT ---\n{proc.stdout}\n--- STDERR ---\n{proc.stderr}"
-        raise AssertionError(details)
+        details = []
+        if msg:
+            details.append(msg)
+        if cmd:
+            details.append(f"Command: {' '.join(map(str, cmd))}")
+        details.append(f"Exit code: {proc.returncode}")
+        details.append("--- STDOUT ---")
+        details.append(proc.stdout if proc.stdout else "(empty)")
+        details.append("--- STDERR ---")
+        details.append(proc.stderr if proc.stderr else "(empty)")
+        raise AssertionError("\n".join(details))
 
 
 def pytest_configure():

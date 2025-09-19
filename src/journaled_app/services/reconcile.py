@@ -12,7 +12,9 @@ def propose_matches(*args, **kwargs):
 def apply_match(*args, **kwargs):
     pass
 
-def unmatch(*args, **kwargs):
+def unmatch_matches(*args, **kwargs):
     pass
 
+def get_reconcile_status(*args, **kwargs):
+    pass
 status = None
